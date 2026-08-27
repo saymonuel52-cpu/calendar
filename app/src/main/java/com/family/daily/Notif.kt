@@ -1,5 +1,6 @@
 package com.family.daily
 
+import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -7,9 +8,15 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import androidx.work.*
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
 import com.family.daily.data.AppDb
 import com.family.daily.data.ReminderQueue
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 object NotificationHelper {
@@ -46,13 +53,17 @@ object ReminderScheduler {
             "reminders", ExistingPeriodicWorkPolicy.KEEP,
             PeriodicWorkRequestBuilder<ReminderWorker>(15, TimeUnit.MINUTES).build())
     }
-    fun minutesOf(hm: String): Int { val p = hm.split(":"); return (p[0].toIntOrNull() ?: 0) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0) }
+    private fun minutesOf(hm: String): Int {
+        val p = hm.split(":")
+        return (p.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0)
+    }
     suspend fun scheduleFor(db: AppDb, sourceType: String, sourceId: Long, title: String, date: String, time: String, remindersCsv: String) {
         if (remindersCsv.isBlank()) return
         val base = if (time.isNotBlank()) minutesOf(time) else 8 * 60
-        val dayStart = java.text.SimpleDateFormat("yyyy-MM-dd").parse(date)?.time ?: return
+        val fmt = SimpleDateFormat("yyyy-MM-dd")
+        val dayStart = try { fmt.parse(date)?.time ?: return } catch (_: Exception) { return }
         remindersCsv.split(",").mapNotNull { it.trim().toIntOrNull() }.forEach { min ->
-            db.reminders().insert(ReminderQueue(sourceType, sourceId, title, dayStart + (base - min) * 60000L))
+            db.reminders().insert(ReminderQueue(sourceType = sourceType, sourceId = sourceId, title = title, fireAt = dayStart + (base - min) * 60000L))
         }
     }
 }
@@ -63,6 +74,6 @@ class BootReceiver : BroadcastReceiver() {
     }
 }
 
-class App : android.app.Application() {
+class App : Application() {
     override fun onCreate() { super.onCreate(); ReminderScheduler.start(this) }
 }
