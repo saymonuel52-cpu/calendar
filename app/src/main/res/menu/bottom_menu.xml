@@ -1,0 +1,7 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/tab_calendar" android:title="Календарь"/>
+    <item android:id="@+id/tab_work" android:title="Работа"/>
+    <item android:id="@+id/tab_family" android:title="Семья"/>
+    <item android:id="@+id/tab_school" android:title="Школа"/>
+    <item android:id="@+id/tab_notes" android:title="Заметки"/>
+</menu>
