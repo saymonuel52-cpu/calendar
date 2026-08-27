@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -16,7 +17,6 @@ import androidx.work.WorkerParameters
 import com.family.daily.data.AppDb
 import com.family.daily.data.ReminderQueue
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.concurrent.TimeUnit
 
 object NotificationHelper {
@@ -38,20 +38,24 @@ object NotificationHelper {
 
 class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p) {
     override suspend fun doWork(): Result {
-        val db = AppDb.get(applicationContext)
-        db.reminders().due(System.currentTimeMillis()).forEach { r ->
-            NotificationHelper.post(applicationContext, r.id.toInt(), "Напоминание", r.title)
-            db.reminders().markFired(r.id)
-        }
+        try {
+            val db = AppDb.get(applicationContext)
+            db.reminders().due(System.currentTimeMillis()).forEach { r ->
+                NotificationHelper.post(applicationContext, r.id.toInt(), "Напоминание", r.title)
+                db.reminders().markFired(r.id)
+            }
+        } catch (e: Exception) { return Result.retry() }
         return Result.success()
     }
 }
 
 object ReminderScheduler {
     fun start(ctx: Context) {
-        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
-            "reminders", ExistingPeriodicWorkPolicy.KEEP,
-            PeriodicWorkRequestBuilder<ReminderWorker>(15, TimeUnit.MINUTES).build())
+        try {
+            WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
+                "reminders", ExistingPeriodicWorkPolicy.KEEP,
+                PeriodicWorkRequestBuilder<ReminderWorker>(15, TimeUnit.MINUTES).build())
+        } catch (e: Exception) { Log.e("ReminderScheduler", "start failed", e) }
     }
     private fun minutesOf(hm: String): Int {
         val p = hm.split(":")
@@ -75,5 +79,14 @@ class BootReceiver : BroadcastReceiver() {
 }
 
 class App : Application() {
-    override fun onCreate() { super.onCreate(); ReminderScheduler.start(this) }
+    override fun onCreate() {
+        super.onCreate()
+        val pref = getSharedPreferences("app", MODE_PRIVATE)
+        val default = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            try { pref.edit().putString("crash", Log.getStackTraceString(e)).apply() } catch (_: Exception) {}
+            default?.uncaughtException(t, e)
+        }
+        ReminderScheduler.start(this)
+    }
 }

@@ -1,10 +1,14 @@
 package com.family.daily
 
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +28,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        showCrashIfAny()
         val pager = findViewById<ViewPager2>(R.id.pager)
         val nav = findViewById<BottomNavigationView>(R.id.nav)
         val fab = findViewById<FloatingActionButton>(R.id.fab)
@@ -45,6 +50,28 @@ class MainActivity : AppCompatActivity() {
         menu.findViewById<MaterialButton>(R.id.fab_note).setOnClickListener { menu.visibility = View.GONE; NoteFormDialog(this).show() }
         menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; Toast.makeText(this, "Записи клиентов — в дропе 4", Toast.LENGTH_SHORT).show() }
     }
+
+    private fun showCrashIfAny() {
+        val pref = getSharedPreferences("app", MODE_PRIVATE)
+        val crash = pref.getString("crash", null) ?: return
+        pref.edit().remove("crash").apply()
+        val tv = TextView(this).apply {
+            text = crash; setTextIsSelectable(true); textSize = 12f
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+        }
+        val sv = ScrollView(this).apply { addView(tv) }
+        AlertDialog.Builder(this)
+            .setTitle("Прошлый запуск упал. Скопируй текст и пришли разработчику")
+            .setView(sv)
+            .setPositiveButton("Скопировать") { _, _ ->
+                val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("crash", crash))
+                Toast.makeText(this, "Скопировано — вставь в чат", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Закрыть", null).show()
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 }
 
 class PlaceholderFragment : Fragment() {
