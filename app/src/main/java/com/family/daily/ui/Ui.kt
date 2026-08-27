@@ -1,11 +1,15 @@
 package com.family.daily.ui
 
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -20,6 +24,18 @@ fun todayStr(): String { val c = Calendar.getInstance(); return String.format("%
 fun minutesOf(hm: String): Int { val p = hm.split(":"); return (p.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0) }
 fun Fragment.toast(s: String) { Toast.makeText(requireContext(), s, Toast.LENGTH_SHORT).show() }
 fun Fragment.db(): AppDb = AppDb.get(requireContext())
+
+fun showCrashDialog(ctx: Context, e: Throwable) {
+    val trace = android.util.Log.getStackTraceString(e)
+    val tv = TextView(ctx).apply { text = trace; setTextIsSelectable(true); textSize = 12f }
+    val sv = ScrollView(ctx).apply { addView(tv) }
+    AlertDialog.Builder(ctx).setTitle("Ошибка. Скопируй текст и пришли разработчику").setView(sv)
+        .setPositiveButton("Скопировать") { _, _ ->
+            val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            cm.setPrimaryClip(ClipData.newPlainText("crash", trace))
+            Toast.makeText(ctx, "Скопировано — вставь в чат", Toast.LENGTH_LONG).show()
+        }.setNegativeButton("Закрыть", null).show()
+}
 
 fun Context.card(): MaterialCardView = MaterialCardView(this).apply {
     radius = dp(14).toFloat()

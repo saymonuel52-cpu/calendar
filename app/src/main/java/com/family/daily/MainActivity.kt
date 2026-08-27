@@ -1,12 +1,12 @@
 package com.family.daily
 
-import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -27,8 +27,14 @@ class MainActivity : AppCompatActivity() {
     private val ids = listOf(R.id.tab_calendar, R.id.tab_work, R.id.tab_family, R.id.tab_school, R.id.tab_notes)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val pref = getSharedPreferences("app", MODE_PRIVATE)
+        val crash = pref.getString("crash", null)
+        if (crash != null) {
+            pref.edit().remove("crash").apply()
+            setContentView(buildCrashView(crash))
+            return
+        }
         setContentView(R.layout.activity_main)
-        showCrashIfAny()
         val pager = findViewById<ViewPager2>(R.id.pager)
         val nav = findViewById<BottomNavigationView>(R.id.nav)
         val fab = findViewById<FloatingActionButton>(R.id.fab)
@@ -51,24 +57,22 @@ class MainActivity : AppCompatActivity() {
         menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; Toast.makeText(this, "Записи клиентов — в дропе 4", Toast.LENGTH_SHORT).show() }
     }
 
-    private fun showCrashIfAny() {
-        val pref = getSharedPreferences("app", MODE_PRIVATE)
-        val crash = pref.getString("crash", null) ?: return
-        pref.edit().remove("crash").apply()
-        val tv = TextView(this).apply {
-            text = crash; setTextIsSelectable(true); textSize = 12f
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-        }
-        val sv = ScrollView(this).apply { addView(tv) }
-        AlertDialog.Builder(this)
-            .setTitle("Прошлый запуск упал. Скопируй текст и пришли разработчику")
-            .setView(sv)
-            .setPositiveButton("Скопировать") { _, _ ->
+    private fun buildCrashView(crash: String): View {
+        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), dp(16), dp(16), dp(16)) }
+        root.addView(TextView(this).apply { text = "Прошлый запуск упал. Приложение в безопасном режиме. Скопируй текст ниже и пришли разработчику."; textSize = 16f })
+        val tv = TextView(this).apply { text = crash; setTextIsSelectable(true); textSize = 12f }
+        val sv = ScrollView(this).apply { addView(tv); layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f) }
+        root.addView(sv)
+        root.addView(Button(this).apply {
+            text = "Скопировать текст"
+            setOnClickListener {
                 val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                 cm.setPrimaryClip(ClipData.newPlainText("crash", crash))
-                Toast.makeText(this, "Скопировано — вставь в чат", Toast.LENGTH_LONG).show()
+                Toast.makeText(this@MainActivity, "Скопировано — вставь в чат", Toast.LENGTH_LONG).show()
             }
-            .setNegativeButton("Закрыть", null).show()
+        })
+        root.addView(Button(this).apply { text = "Закрыть"; setOnClickListener { finish() } })
+        return root
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

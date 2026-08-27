@@ -54,7 +54,9 @@ class CalendarFragment : Fragment() {
         super.onViewCreated(v, s)
         collectMonth()
         viewLifecycleOwner.lifecycleScope.launch {
-            CalendarRepository(db()).dayItems(todayStr()).collect { items -> renderToday(items) }
+            try {
+                CalendarRepository(db()).dayItems(todayStr()).collect { items -> renderToday(items) }
+            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 
@@ -82,19 +84,21 @@ class CalendarFragment : Fragment() {
         val to = String.format("%04d-%02d-%02d", y, m + 1, last)
         monthTitle.text = month.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale("ru")).toString() + " " + y
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
-            combine(db().events().between(from, to), db().school().all(), db().templates().all()) { evs, sch, tpl ->
-                val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
-                evs.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
-                val cal = Calendar.getInstance(); cal.set(y, m, 1)
-                for (d in 1..last) {
-                    val dow = cal.get(Calendar.DAY_OF_WEEK)
-                    val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
-                    sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
-                    tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> map.getOrPut(ds) { mutableListOf() }.add(t.categoryId) }
-                    cal.add(Calendar.DAY_OF_MONTH, 1)
-                }
-                Pair(map, allday)
-            }.collect { pair -> renderGrid(y, m, last, pair.first, pair.second) }
+            try {
+                combine(db().events().between(from, to), db().school().all(), db().templates().all()) { evs, sch, tpl ->
+                    val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
+                    evs.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
+                    val cal = Calendar.getInstance(); cal.set(y, m, 1)
+                    for (d in 1..last) {
+                        val dow = cal.get(Calendar.DAY_OF_WEEK)
+                        val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
+                        sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
+                        tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> map.getOrPut(ds) { mutableListOf() }.add(t2.categoryId) }
+                        cal.add(Calendar.DAY_OF_MONTH, 1)
+                    }
+                    Pair(map, allday)
+                }.collect { pair -> renderGrid(y, m, last, pair.first, pair.second) }
+            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 
@@ -139,21 +143,23 @@ class CalendarFragment : Fragment() {
     private fun dayDialog(ds: String) {
         val ctx = requireContext()
         viewLifecycleOwner.lifecycleScope.launch {
-            val items = CalendarRepository(db()).dayItems(ds).first()
-            val box = ctx.colV().apply { setPadding(ctx.dp(20), ctx.dp(12), ctx.dp(20), ctx.dp(8)) }
-            box.addView(ctx.tv(ds, 16f, true))
-            if (items.isEmpty()) box.addView(ctx.tv("Событий нет", 13f))
-            items.forEach { item ->
-                val r = ctx.rowH()
-                r.addView(ctx.bar(colorOf(item.categoryId)))
-                r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
-                val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                r.addView(t)
-                if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
-                box.addView(r)
-            }
-            box.addView(Button(ctx).apply { text = "+ Событие"; setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() } })
-            AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
+            try {
+                val items = CalendarRepository(db()).dayItems(ds).first()
+                val box = ctx.colV().apply { setPadding(ctx.dp(20), ctx.dp(12), ctx.dp(20), ctx.dp(8)) }
+                box.addView(ctx.tv(ds, 16f, true))
+                if (items.isEmpty()) box.addView(ctx.tv("Событий нет", 13f))
+                items.forEach { item ->
+                    val r = ctx.rowH()
+                    r.addView(ctx.bar(colorOf(item.categoryId)))
+                    r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                    val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                    r.addView(t)
+                    if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
+                    box.addView(r)
+                }
+                box.addView(Button(ctx).apply { text = "+ Событие"; setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() } })
+                AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
+            } catch (e: Exception) { showCrashDialog(ctx, e) }
         }
     }
 }
