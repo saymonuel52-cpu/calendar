@@ -54,7 +54,7 @@ class CalendarFragment : Fragment() {
         super.onViewCreated(v, s)
         collectMonth()
         viewLifecycleOwner.lifecycleScope.launch {
-            CalendarRepository(db()).dayItems(todayStr()).collect { renderToday(it) }
+            CalendarRepository(db()).dayItems(todayStr()).collect { items -> renderToday(items) }
         }
     }
 
@@ -63,13 +63,13 @@ class CalendarFragment : Fragment() {
         todayBox.removeAllViews()
         todayBox.addView(ctx.tv("Сегодня", 16f, true))
         if (items.isEmpty()) todayBox.addView(ctx.tv("Сегодня событий нет", 13f))
-        items.take(6).forEach { it ->
+        items.take(6).forEach { item ->
             val r = ctx.rowH()
-            r.addView(ctx.bar(colorOf(it.categoryId)))
-            r.addView(ctx.tv(if (it.allDay) "весь день" else it.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
-            val t = ctx.tv(it.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            r.addView(ctx.bar(colorOf(item.categoryId)))
+            r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+            val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             r.addView(t)
-            if (it.kind == "ev") r.setOnClickListener { showEventView(ctx, it.id) }
+            if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
             todayBox.addView(r)
         }
     }
@@ -89,12 +89,12 @@ class CalendarFragment : Fragment() {
                 for (d in 1..last) {
                     val dow = cal.get(Calendar.DAY_OF_WEEK)
                     val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
-                    sch.filter { it.enabled && it.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { map.getOrPut(ds) { mutableListOf() }.add(3L) }
-                    tpl.filter { it.dayOfWeek == dow }.forEach { map.getOrPut(ds) { mutableListOf() }.add(it.categoryId) }
+                    sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
+                    tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> map.getOrPut(ds) { mutableListOf() }.add(t.categoryId) }
                     cal.add(Calendar.DAY_OF_MONTH, 1)
                 }
                 Pair(map, allday)
-            }.collect { (map, allday) -> renderGrid(y, m, last, map, allday) }
+            }.collect { pair -> renderGrid(y, m, last, pair.first, pair.second) }
         }
     }
 
@@ -108,7 +108,7 @@ class CalendarFragment : Fragment() {
         grid.addView(hdr)
         val c = Calendar.getInstance(); c.set(y, m, 1)
         val off = (c.get(Calendar.DAY_OF_WEEK) + 6) % 7
-        var row = ctx.rowH().apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = ctx.dp(4) } }
+        var row = newRow(ctx)
         for (i in 0 until off) row.addView(View(ctx).apply { layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f) })
         for (d in 1..last) {
             val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
@@ -128,10 +128,13 @@ class CalendarFragment : Fragment() {
             cell.setOnClickListener { dayDialog(ds) }
             cell.setOnLongClickListener { EventFormDialog(ctx, presetDate = ds).show(); true }
             row.addView(cell)
-            if ((off + d) % 7 == 0) { grid.addView(row); row = ctx.rowH().apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = ctx.dp(4) } } }
+            if ((off + d) % 7 == 0) { grid.addView(row); row = newRow(ctx) }
         }
         if (row.childCount > 0) grid.addView(row)
     }
+
+    private fun newRow(ctx: android.content.Context): LinearLayout =
+        ctx.rowH().apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = ctx.dp(4) } }
 
     private fun dayDialog(ds: String) {
         val ctx = requireContext()
@@ -140,13 +143,13 @@ class CalendarFragment : Fragment() {
             val box = ctx.colV().apply { setPadding(ctx.dp(20), ctx.dp(12), ctx.dp(20), ctx.dp(8)) }
             box.addView(ctx.tv(ds, 16f, true))
             if (items.isEmpty()) box.addView(ctx.tv("Событий нет", 13f))
-            items.forEach { it ->
+            items.forEach { item ->
                 val r = ctx.rowH()
-                r.addView(ctx.bar(colorOf(it.categoryId)))
-                r.addView(ctx.tv(if (it.allDay) "весь день" else it.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
-                val t = ctx.tv(it.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                r.addView(ctx.bar(colorOf(item.categoryId)))
+                r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                 r.addView(t)
-                if (it.kind == "ev") r.setOnClickListener { showEventView(ctx, it.id) }
+                if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
                 box.addView(r)
             }
             box.addView(Button(ctx).apply { text = "+ Событие"; setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() } })
