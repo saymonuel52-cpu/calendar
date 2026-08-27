@@ -1,7 +1,7 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/tab_calendar" android:title="Календарь"/>
-    <item android:id="@+id/tab_work" android:title="Работа"/>
-    <item android:id="@+id/tab_family" android:title="Семья"/>
-    <item android:id="@+id/tab_school" android:title="Школа"/>
-    <item android:id="@+id/tab_notes" android:title="Заметки"/>
+    <item android:id="@+id/tab_calendar" android:icon="@drawable/ic_calendar" android:title="Календарь"/>
+    <item android:id="@+id/tab_work" android:icon="@drawable/ic_work" android:title="Работа"/>
+    <item android:id="@+id/tab_family" android:icon="@drawable/ic_family" android:title="Семья"/>
+    <item android:id="@+id/tab_school" android:icon="@drawable/ic_school" android:title="Школа"/>
+    <item android:id="@+id/tab_notes" android:icon="@drawable/ic_notes" android:title="Заметки"/>
 </menu>
