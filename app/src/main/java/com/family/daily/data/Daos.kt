@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM events WHERE date = :d ORDER BY start") fun onDay(d: String): Flow<List<Event>>
     @Query("SELECT * FROM events WHERE date BETWEEN :f AND :t ORDER BY date, start") fun between(f: String, t: String): Flow<List<Event>>
     @Query("SELECT * FROM events WHERE id = :id") suspend fun byId(id: Long): Event?
+    @Query("SELECT COUNT(*) FROM events WHERE date = :d AND id != :ex AND allDay = 0 AND start < :e AND :s < end") suspend fun overlaps(d: String, s: String, e: String, ex: Long): Int
     @Insert suspend fun insert(e: Event): Long
     @Update suspend fun update(e: Event)
     @Query("DELETE FROM events WHERE id = :id") suspend fun delete(id: Long)
