@@ -15,10 +15,14 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
+import com.family.daily.ui.BookingDialog
 import com.family.daily.ui.CalendarFragment
 import com.family.daily.ui.EventFormDialog
+import com.family.daily.ui.FamilyFragment
 import com.family.daily.ui.NoteFormDialog
 import com.family.daily.ui.NotesFragment
+import com.family.daily.ui.SchoolFragment
+import com.family.daily.ui.WorkFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -43,8 +47,10 @@ class MainActivity : AppCompatActivity() {
             override fun getItemCount() = 5
             override fun createFragment(position: Int): Fragment = when (position) {
                 0 -> CalendarFragment()
-                4 -> NotesFragment()
-                else -> PlaceholderFragment.newInstance(listOf("Календарь", "Работа", "Семья", "Школа", "Заметки")[position])
+                1 -> WorkFragment()
+                2 -> FamilyFragment()
+                3 -> SchoolFragment()
+                else -> NotesFragment()
             }
         }
         nav.setOnItemSelectedListener { item -> pager.currentItem = ids.indexOf(item.itemId); true }
@@ -54,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         fab.setOnClickListener { menu.visibility = if (menu.visibility == View.VISIBLE) View.GONE else View.VISIBLE }
         menu.findViewById<MaterialButton>(R.id.fab_event).setOnClickListener { menu.visibility = View.GONE; EventFormDialog(this).show() }
         menu.findViewById<MaterialButton>(R.id.fab_note).setOnClickListener { menu.visibility = View.GONE; NoteFormDialog(this).show() }
-        menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; Toast.makeText(this, "Записи клиентов — в дропе 4", Toast.LENGTH_SHORT).show() }
+        menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; BookingDialog(this).show() }
     }
 
     private fun buildCrashView(crash: String): View {
@@ -76,12 +82,4 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
-}
-
-class PlaceholderFragment : Fragment() {
-    override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View =
-        TextView(requireContext()).apply { text = arguments?.getString("t"); textSize = 24f }
-    companion object {
-        fun newInstance(t: String) = PlaceholderFragment().apply { arguments = Bundle().apply { putString("t", t) } }
-    }
 }

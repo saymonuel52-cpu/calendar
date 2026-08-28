@@ -10,8 +10,12 @@ import kotlinx.coroutines.flow.Flow
 @Dao interface EventDao {
     @Query("SELECT * FROM events WHERE date = :d ORDER BY start") fun onDay(d: String): Flow<List<Event>>
     @Query("SELECT * FROM events WHERE date BETWEEN :f AND :t ORDER BY date, start") fun between(f: String, t: String): Flow<List<Event>>
+    @Query("SELECT * FROM events WHERE categoryId = :c ORDER BY date DESC, start DESC") fun byCat(c: Long): Flow<List<Event>>
     @Query("SELECT * FROM events WHERE id = :id") suspend fun byId(id: Long): Event?
     @Query("SELECT COUNT(*) FROM events WHERE date = :d AND id != :ex AND allDay = 0 AND start < :e AND :s < end") suspend fun overlaps(d: String, s: String, e: String, ex: Long): Int
+    @Query("SELECT * FROM events WHERE date = :d AND categoryId = 1 AND status != 'Отменён'") suspend fun workOn(d: String): List<Event>
+    @Query("SELECT * FROM events WHERE categoryId = 1 AND status = 'Завершено' AND date LIKE :p ORDER BY date") suspend fun monthDone(p: String): List<Event>
+    @Query("SELECT * FROM events WHERE clientId = :cid ORDER BY date DESC") suspend fun byClient(cid: Long): List<Event>
     @Insert suspend fun insert(e: Event): Long
     @Update suspend fun update(e: Event)
     @Query("DELETE FROM events WHERE id = :id") suspend fun delete(id: Long)
@@ -20,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM family_members ORDER BY id") fun all(): Flow<List<FamilyMember>>
     @Query("SELECT * FROM family_members WHERE id = :id") suspend fun byId(id: Long): FamilyMember?
     @Insert suspend fun insert(m: FamilyMember): Long
+    @Update suspend fun update(m: FamilyMember)
 }
 @Dao interface ClientDao {
     @Query("SELECT * FROM clients ORDER BY name") fun all(): Flow<List<Client>>
@@ -30,7 +35,9 @@ import kotlinx.coroutines.flow.Flow
 }
 @Dao interface ServiceDao {
     @Query("SELECT * FROM services ORDER BY name") fun all(): Flow<List<Service>>
+    @Query("SELECT * FROM services WHERE id = :id") suspend fun byId(id: Long): Service?
     @Insert suspend fun insert(s: Service): Long
+    @Update suspend fun update(s: Service)
 }
 @Dao interface ParticipantDao {
     @Query("SELECT memberId FROM event_participants WHERE eventId = :eid") suspend fun membersOf(eid: Long): List<Long>
