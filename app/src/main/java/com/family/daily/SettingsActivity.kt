@@ -55,12 +55,21 @@ class SettingsActivity : AppCompatActivity() {
 
         root.addView(tv("Внешний вид"))
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
-        dark.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("dark", c).apply(); AppCompatDelegate.setDefaultNightMode(if (c) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO) }
+        dark.setOnCheckedChangeListener { _, c ->
+            pref.edit().putBoolean("dark", c).apply()
+            AppCompatDelegate.setDefaultNightMode(if (c) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
+        }
         root.addView(dark)
+
         root.addView(tv("Первый день недели"))
-        val fd = Spinner(this).apply { adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, listOf("Понедельник", "Воскресенье")); setSelection(pref.getInt("firstDay", 1) == 1 ? 0 : 1) }
+        val fd = Spinner(this).apply {
+            adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, listOf("Понедельник", "Воскресенье"))
+            setSelection(if (pref.getInt("firstDay", 1) == 1) 0 else 1)
+        }
         fd.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) { pref.edit().putInt("firstDay", if (pos == 0) 1 else 0).apply() }
+            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                pref.edit().putInt("firstDay", if (pos == 0) 1 else 0).apply()
+            }
             override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
         root.addView(fd)
@@ -77,7 +86,10 @@ class SettingsActivity : AppCompatActivity() {
             text = "💾 Экспорт (бэкап JSON)"
             setOnClickListener { rcExport.launch("family_planner_" + com.family.daily.ui.todayStr() + ".json") }
         })
-        root.addView(Button(this).apply { text = "📥 Импорт из JSON"; setOnClickListener { rcImport.launch(arrayOf("application/json", "*/*")) } })
+        root.addView(Button(this).apply {
+            text = "📥 Импорт из JSON"
+            setOnClickListener { rcImport.launch(arrayOf("application/json", "*/*")) }
+        })
         val lb = pref.getString("lastBackup", null)
         if (lb != null) root.addView(tv("Последний бэкап: " + lb, 12f))
         root.addView(Button(this).apply {
@@ -91,7 +103,7 @@ class SettingsActivity : AppCompatActivity() {
                 }.setNegativeButton("Отмена", null).show()
             }
         })
-        root.addView(tv("О приложении: Семейный ежедневник v1.0 (code " + try { packageManager.getPackageInfo(packageName, 0).versionCode.toString() } catch (e: Exception) { "?" } + "). Офлайн, данные только на телефоне.", 12f))
+        root.addView(tv("О приложении: Семейный ежедневник v1.0. Офлайн, данные только на телефоне.", 12f))
     }
 
     private fun tv(s: String, size: Float = 16f) = TextView(this).apply { text = s; textSize = size; setPadding(0, dp(8), 0, dp(4)) }
