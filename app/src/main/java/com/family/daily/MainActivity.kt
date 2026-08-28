@@ -2,6 +2,7 @@ package com.family.daily
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -29,6 +30,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
     private val ids = listOf(R.id.tab_calendar, R.id.tab_work, R.id.tab_family, R.id.tab_school, R.id.tab_notes)
+    private lateinit var visible: List<Int>
+    private var lastUi = -1
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val pref = getSharedPreferences("app", MODE_PRIVATE)
@@ -38,29 +42,45 @@ class MainActivity : AppCompatActivity() {
             setContentView(buildCrashView(crash))
             return
         }
+        visible = computeVisible()
+        lastUi = pref.getInt("uiVersion", 0)
         setContentView(R.layout.activity_main)
         val pager = findViewById<ViewPager2>(R.id.pager)
         val nav = findViewById<BottomNavigationView>(R.id.nav)
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         val menu = findViewById<LinearLayout>(R.id.fabmenu)
+        ids.forEachIndexed { idx, id -> nav.menu.findItem(id).isVisible = visible.contains(idx) }
         pager.adapter = object : FragmentStateAdapter(this) {
-            override fun getItemCount() = 5
-            override fun createFragment(position: Int): Fragment = when (position) {
-                0 -> CalendarFragment()
-                1 -> WorkFragment()
-                2 -> FamilyFragment()
-                3 -> SchoolFragment()
-                else -> NotesFragment()
+            override fun getItemCount() = visible.size
+            override fun createFragment(position: Int): Fragment = when (visible[position]) {
+                0 -> CalendarFragment(); 1 -> WorkFragment(); 2 -> FamilyFragment(); 3 -> SchoolFragment(); else -> NotesFragment()
             }
         }
-        nav.setOnItemSelectedListener { item -> pager.currentItem = ids.indexOf(item.itemId); true }
+        nav.setOnItemSelectedListener { item ->
+            val pos = visible.indexOf(ids.indexOf(item.itemId)); if (pos >= 0) pager.currentItem = pos; true
+        }
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(p: Int) { nav.selectedItemId = ids[p] }
+            override fun onPageSelected(p: Int) { nav.selectedItemId = ids[visible[p]] }
         })
         fab.setOnClickListener { menu.visibility = if (menu.visibility == View.VISIBLE) View.GONE else View.VISIBLE }
         menu.findViewById<MaterialButton>(R.id.fab_event).setOnClickListener { menu.visibility = View.GONE; EventFormDialog(this).show() }
         menu.findViewById<MaterialButton>(R.id.fab_note).setOnClickListener { menu.visibility = View.GONE; NoteFormDialog(this).show() }
         menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; BookingDialog(this).show() }
+        findViewById<Button>(R.id.btn_settings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (lastUi >= 0 && getSharedPreferences("app", MODE_PRIVATE).getInt("uiVersion", 0) != lastUi) recreate()
+    }
+
+    private fun computeVisible(): List<Int> {
+        val p = getSharedPreferences("app", MODE_PRIVATE)
+        val list = mutableListOf(0, 2)
+        if (!p.getBoolean("hideWork", false)) list.add(1)
+        if (!p.getBoolean("hideSchool", false)) list.add(3)
+        if (!p.getBoolean("hideNotes", false)) list.add(4)
+        return list.sorted()
     }
 
     private fun buildCrashView(crash: String): View {

@@ -6,6 +6,7 @@
         <androidx.viewpager2.widget.ViewPager2 android:id="@+id/pager" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
         <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/nav" android:layout_width="match_parent" android:layout_height="wrap_content" app:labelVisibilityMode="labeled" app:menu="@menu/bottom_menu"/>
     </LinearLayout>
+    <Button android:id="@+id/btn_settings" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="top|end" android:layout_marginTop="4dp" android:layout_marginEnd="4dp" android:background="@android:color/transparent" android:text="⚙️" android:textSize="20sp"/>
     <LinearLayout android:id="@+id/fabmenu" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:layout_gravity="bottom|end" android:layout_marginEnd="16dp" android:layout_marginBottom="96dp" android:visibility="gone">
         <com.google.android.material.button.MaterialButton android:id="@+id/fab_event" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Событие" app:backgroundTint="#EC407A"/>
         <com.google.android.material.button.MaterialButton android:id="@+id/fab_note" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Заметка" app:backgroundTint="#FB8C00"/>

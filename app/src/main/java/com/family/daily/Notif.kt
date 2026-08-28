@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.util.Log
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -82,6 +83,7 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         val pref = getSharedPreferences("app", MODE_PRIVATE)
+        AppCompatDelegate.setDefaultNightMode(if (pref.getBoolean("dark", false)) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO)
         val default = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { t, e ->
             try { pref.edit().putString("crash", Log.getStackTraceString(e)).apply() } catch (_: Exception) {}

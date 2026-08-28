@@ -1,6 +1,7 @@
 package com.family.daily.ui
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -30,6 +31,8 @@ class CalendarFragment : Fragment() {
     private lateinit var monthTitle: TextView
     private var monthJob: Job? = null
 
+    private fun firstDayDow(): Int = if (requireContext().getSharedPreferences("app", 0).getInt("firstDay", 1) == 1) 2 else 1
+
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         val ctx = requireContext()
         val scroll = ScrollView(ctx)
@@ -41,13 +44,28 @@ class CalendarFragment : Fragment() {
         monthTitle = ctx.tv("", 16f, true); monthTitle.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); monthTitle.gravity = Gravity.CENTER
         val next = Button(ctx).apply { text = "›" }
         val todayBtn = Button(ctx).apply { text = "Сегодня" }
+        val share = Button(ctx).apply { text = "📤" }
+        share.setOnClickListener { shareDay() }
         prev.setOnClickListener { month.add(Calendar.MONTH, -1); collectMonth() }
         next.setOnClickListener { month.add(Calendar.MONTH, 1); collectMonth() }
         todayBtn.setOnClickListener { month.timeInMillis = System.currentTimeMillis(); collectMonth() }
-        hdr.addView(prev); hdr.addView(monthTitle); hdr.addView(next); hdr.addView(todayBtn)
+        hdr.addView(prev); hdr.addView(monthTitle); hdr.addView(next); hdr.addView(todayBtn); hdr.addView(share)
         root.addView(hdr)
         grid = ctx.colV(); root.addView(grid)
         return scroll
+    }
+
+    override fun onResume() { super.onResume(); collectMonth() }
+
+    private fun shareDay() {
+        val ctx = requireContext()
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val items = CalendarRepository(db()).dayItems(todayStr()).first()
+                val text = "План на " + todayStr() + ":\n" + (if (items.isEmpty()) "свободно" else items.joinToString("\n") { (if (it.allDay) "весь день" else it.start) + " — " + it.title })
+                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Поделиться днём"))
+            } catch (e: Exception) { showCrashDialog(ctx, e) }
+        }
     }
 
     override fun onViewCreated(v: View, s: Bundle?) {
@@ -77,6 +95,7 @@ class CalendarFragment : Fragment() {
     }
 
     private fun collectMonth() {
+        if (!isAdded) return
         monthJob?.cancel()
         val y = month.get(Calendar.YEAR); val m = month.get(Calendar.MONTH)
         val last = month.getActualMaximum(Calendar.DAY_OF_MONTH)
@@ -105,13 +124,15 @@ class CalendarFragment : Fragment() {
     private fun renderGrid(y: Int, m: Int, last: Int, map: Map<String, MutableList<Long>>, allday: Set<String>) {
         val ctx = requireContext()
         grid.removeAllViews()
+        val fd = firstDayDow()
+        val names = if (fd == 2) listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс") else listOf("Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб")
         val hdr = ctx.rowH()
-        listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс").forEach { d ->
+        names.forEach { d ->
             val t = ctx.tv(d, 11f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); t.gravity = Gravity.CENTER; hdr.addView(t)
         }
         grid.addView(hdr)
         val c = Calendar.getInstance(); c.set(y, m, 1)
-        val off = (c.get(Calendar.DAY_OF_WEEK) + 6) % 7
+        val off = (c.get(Calendar.DAY_OF_WEEK) - fd + 7) % 7
         var row = newRow(ctx)
         for (i in 0 until off) row.addView(View(ctx).apply { layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f) })
         for (d in 1..last) {

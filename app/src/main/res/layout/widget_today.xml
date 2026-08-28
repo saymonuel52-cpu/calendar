@@ -1,0 +1,10 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="#CC1c2330" android:padding="10dp">
+    <TextView android:id="@+id/w_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Сегодня" android:textColor="#FFFFFF" android:textStyle="bold" android:textSize="14sp"/>
+    <TextView android:id="@+id/w_l1" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp"/>
+    <TextView android:id="@+id/w_l2" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp"/>
+    <TextView android:id="@+id/w_l3" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp"/>
+    <TextView android:id="@+id/w_l4" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp"/>
+    <TextView android:id="@+id/w_l5" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="#FFFFFF" android:textSize="12sp"/>
+</LinearLayout>
