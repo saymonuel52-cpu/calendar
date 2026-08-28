@@ -39,7 +39,7 @@ class Form(private val ctx: Context) {
 class DateBtn(ctx: Context, init: String) : Button(ctx) {
     var value = init
     init { text = pretty(value); setOnClickListener { pick() } }
-    private fun pretty(v: String): String = try { val p = v.split("-"); if (v.isBlank()) "выбрать дату" else p[2] + "." + p[1] + "." + p[0] } catch (e: Exception) { v }
+    private fun pretty(v: String): String = try { val p = v.split("-"); if (v.isBlank()) "выбрать дату" else p[2] + "." + p[1] + "." + p[0] } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { v }
     private fun pick() {
         val p = value.split("-"); val c = Calendar.getInstance()
         if (p.size == 3 && p[0].isNotBlank()) c.set(p[0].toInt(), p[1].toInt() - 1, p[2].toInt())

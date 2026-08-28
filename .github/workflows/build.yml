@@ -1,5 +1,7 @@
 name: Build
 on: [push, workflow_dispatch]
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -11,6 +13,21 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+
+      - name: Ensure stable keystore (auto)
+        run: |
+          if [ ! -f ci/release.keystore ]; then
+            mkdir -p ci
+            keytool -genkeypair -v -keystore ci/release.keystore -alias family \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass family123 -keypass family123 \
+              -dname "CN=Family Daily, OU=Dev, O=Family, C=RU"
+            git config user.name "CI"
+            git config user.email "ci@local"
+            git add ci/release.keystore
+            git commit -m "ci: auto-generated stable keystore"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }} || true
+          fi
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -27,7 +44,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

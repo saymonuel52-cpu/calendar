@@ -35,7 +35,7 @@ class NotesFragment : Fragment() {
                     }
                     root.addView(Button(ctx).apply { text = "+ Заметка"; setOnClickListener { NoteFormDialog(ctx).show() } })
                 }
-            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
         return scroll
     }

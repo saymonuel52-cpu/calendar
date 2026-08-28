@@ -30,7 +30,7 @@ class FamilyFragment : Fragment() {
     private fun render() {
         if (!isAdded) return
         viewLifecycleOwner.lifecycleScope.launch {
-            try { renderInner() } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+            try { renderInner() } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
     private suspend fun renderInner() {

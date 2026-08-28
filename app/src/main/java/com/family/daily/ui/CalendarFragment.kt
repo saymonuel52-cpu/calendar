@@ -64,7 +64,7 @@ class CalendarFragment : Fragment() {
                 val items = CalendarRepository(db()).dayItems(todayStr()).first()
                 val text = "План на " + todayStr() + ":\n" + (if (items.isEmpty()) "свободно" else items.joinToString("\n") { (if (it.allDay) "весь день" else it.start) + " — " + it.title })
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Поделиться днём"))
-            } catch (e: Exception) { showCrashDialog(ctx, e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
         }
     }
 
@@ -74,7 +74,7 @@ class CalendarFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 CalendarRepository(db()).dayItems(todayStr()).collect { items -> renderToday(items) }
-            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 
@@ -117,7 +117,7 @@ class CalendarFragment : Fragment() {
                     }
                     Pair(map, allday)
                 }.collect { pair -> renderGrid(y, m, last, pair.first, pair.second) }
-            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 
@@ -180,7 +180,7 @@ class CalendarFragment : Fragment() {
                 }
                 box.addView(Button(ctx).apply { text = "+ Событие"; setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() } })
                 AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
-            } catch (e: Exception) { showCrashDialog(ctx, e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
         }
     }
 }

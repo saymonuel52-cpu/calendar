@@ -46,7 +46,7 @@ class SchoolFragment : Fragment() {
                     card.addView(col); root.addView(card)
                 }
                 root.addView(Button(ctx).apply { text = "+ Расписание ребёнка"; setOnClickListener { SchoolDialog(ctx) { render() }.show() } })
-            } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 }
