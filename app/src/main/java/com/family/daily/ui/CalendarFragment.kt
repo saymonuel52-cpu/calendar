@@ -1,6 +1,6 @@
 package com.family.daily.ui
 
-import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
@@ -28,36 +28,46 @@ import java.util.Calendar
 class CalendarFragment : Fragment() {
     private val month = Calendar.getInstance()
     private lateinit var root: LinearLayout
-    private lateinit var todayBox: LinearLayout
+    private lateinit var dayTitle: TextView
+    private lateinit var dayBox: LinearLayout
     private lateinit var grid: LinearLayout
     private lateinit var monthTitle: TextView
     private var monthJob: Job? = null
+    private var dayJob: Job? = null
+    private var selectedDay = todayStr()
 
     private fun pref() = requireContext().getSharedPreferences("app", 0)
     private fun firstDayDow(): Int = if (pref().getInt("firstDay", 1) == 1) 2 else 1
     private fun addDaysStr(n: Int): String { val c = Calendar.getInstance(); c.add(Calendar.DAY_OF_MONTH, n); return String.format("%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)) }
+    private fun smallBtn(ctx: Context, text: String): Button = Button(ctx).apply { this.text = text; minWidth = 0; minimumWidth = 0; minHeight = 0; minimumHeight = 0 }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         val ctx = requireContext()
         val scroll = ScrollView(ctx)
         root = ctx.colV().apply { setPadding(ctx.dp(12), ctx.dp(12), ctx.dp(12), ctx.dp(96)) }
         scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        val tc = ctx.card(); todayBox = ctx.colV(); tc.addView(todayBox); root.addView(tc)
+        val tc = ctx.card()
+        val tcol = ctx.colV()
+        dayTitle = ctx.tv("Сегодня", 16f, true)
+        dayBox = ctx.colV()
+        tcol.addView(dayTitle); tcol.addView(dayBox)
+        tcol.addView(ctx.tv("Тап по дню — показать события здесь. Долгое нажатие — новое событие. Тап по событию — редактировать.", 11f))
+        tc.addView(tcol); root.addView(tc)
         val hdr = ctx.rowH()
-        val prev = Button(ctx).apply { text = "‹" }
+        val prev = smallBtn(ctx, "‹")
         monthTitle = ctx.tv("", 16f, true); monthTitle.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f); monthTitle.gravity = Gravity.CENTER
-        val next = Button(ctx).apply { text = "›" }
-        val todayBtn = Button(ctx).apply { text = "Сегодня" }
-        val share = Button(ctx).apply { text = "📤" }
+        val next = smallBtn(ctx, "›")
+        val todayBtn = smallBtn(ctx, "Сегодня")
+        val share = smallBtn(ctx, "📤")
         share.setOnClickListener { shareDay() }
         prev.setOnClickListener { month.add(Calendar.MONTH, -1); collectMonth() }
         next.setOnClickListener { month.add(Calendar.MONTH, 1); collectMonth() }
-        todayBtn.setOnClickListener { month.timeInMillis = System.currentTimeMillis(); collectMonth() }
+        todayBtn.setOnClickListener { month.timeInMillis = System.currentTimeMillis(); selectedDay = todayStr(); collectMonth(); collectDay() }
         hdr.addView(prev); hdr.addView(monthTitle); hdr.addView(next); hdr.addView(todayBtn); hdr.addView(share)
         root.addView(hdr)
         val modeRow = ctx.rowH()
-        val gridBtn = Button(ctx).apply { text = "Месяц" }
-        val listBtn = Button(ctx).apply { text = "Список (занятые дни)" }
+        val gridBtn = smallBtn(ctx, "Месяц")
+        val listBtn = smallBtn(ctx, "Список (занятые дни)")
         gridBtn.setOnClickListener { pref().edit().putString("calMode", "grid").apply(); collectMonth() }
         listBtn.setOnClickListener { pref().edit().putString("calMode", "list").apply(); collectMonth() }
         modeRow.addView(gridBtn); modeRow.addView(listBtn)
@@ -66,14 +76,14 @@ class CalendarFragment : Fragment() {
         return scroll
     }
 
-    override fun onResume() { super.onResume(); collectMonth() }
+    override fun onResume() { super.onResume(); collectMonth(); collectDay() }
 
     private fun shareDay() {
         val ctx = requireContext()
         viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val items = CalendarRepository(db()).dayItems(todayStr()).first()
-                val text = "План на " + todayStr() + ":\n" + (if (items.isEmpty()) "свободно" else items.joinToString("\n") { (if (it.allDay) "весь день" else it.start) + " — " + it.title })
+                val items = CalendarRepository(db()).dayItems(selectedDay).first()
+                val text = "План на " + selectedDay + ":\n" + (if (items.isEmpty()) "свободно" else items.joinToString("\n") { (if (it.allDay) "весь день" else it.start) + " — " + it.title })
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Поделиться днём"))
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
         }
@@ -82,26 +92,32 @@ class CalendarFragment : Fragment() {
     override fun onViewCreated(v: View, s: Bundle?) {
         super.onViewCreated(v, s)
         collectMonth()
-        viewLifecycleOwner.lifecycleScope.launch {
+        collectDay()
+    }
+
+    private fun collectDay() {
+        if (!isAdded) return
+        dayJob?.cancel()
+        dayJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                CalendarRepository(db()).dayItems(todayStr()).collect { items -> renderToday(items) }
+                CalendarRepository(db()).dayItems(selectedDay).collect { items -> renderDayCard(items) }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
 
-    private fun renderToday(items: List<DayItem>) {
+    private fun renderDayCard(items: List<DayItem>) {
         val ctx = requireContext()
-        todayBox.removeAllViews()
-        todayBox.addView(ctx.tv("Сегодня", 16f, true))
-        if (items.isEmpty()) todayBox.addView(ctx.tv("Сегодня событий нет", 13f))
-        items.take(6).forEach { item ->
+        dayTitle.text = if (selectedDay == todayStr()) "Сегодня" else selectedDay
+        dayBox.removeAllViews()
+        if (items.isEmpty()) dayBox.addView(ctx.tv("Событий нет", 13f))
+        items.forEach { item ->
             val r = ctx.rowH()
             r.addView(ctx.bar(colorOf(item.categoryId)))
             r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
             val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             r.addView(t)
             if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
-            todayBox.addView(r)
+            dayBox.addView(r)
         }
     }
 
@@ -162,7 +178,7 @@ class CalendarFragment : Fragment() {
                     items.sortedBy { if (it.allDay) "00:00" else it.start }.forEach { item ->
                         val r = ctx.rowH()
                         r.addView(ctx.bar(colorOf(item.categoryId)))
-                        r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                        r.addView(ctx.tv(if (it.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
                         val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                         r.addView(t)
                         if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
@@ -193,7 +209,7 @@ class CalendarFragment : Fragment() {
             val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
             val cell = ctx.colV(); cell.gravity = Gravity.CENTER_HORIZONTAL
             val bg = GradientDrawable(); bg.cornerRadius = ctx.dp(8).toFloat()
-            if (ds == todayStr()) bg.setStroke(ctx.dp(2), Color.parseColor("#1E88E5"))
+            if (ds == selectedDay) bg.setStroke(ctx.dp(2), Color.parseColor("#1E88E5"))
             cell.background = bg
             cell.layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f)
             cell.addView(ctx.tv(d.toString(), 13f, ds == todayStr()))
@@ -204,7 +220,7 @@ class CalendarFragment : Fragment() {
             }
             cell.addView(dots)
             if (allday.contains(ds)) { val b = View(ctx); b.layoutParams = LinearLayout.LayoutParams(ctx.dp(24), ctx.dp(4)); b.setBackgroundColor(colorOf(map[ds]?.first() ?: 1L)); cell.addView(b) }
-            cell.setOnClickListener { dayDialog(ds) }
+            cell.setOnClickListener { selectedDay = ds; collectDay(); collectMonth() }
             cell.setOnLongClickListener { EventFormDialog(ctx, presetDate = ds).show(); true }
             row.addView(cell)
             if ((off + d) % 7 == 0) { grid.addView(row); row = newRow(ctx) }
@@ -212,35 +228,6 @@ class CalendarFragment : Fragment() {
         if (row.childCount > 0) grid.addView(row)
     }
 
-    private fun newRow(ctx: android.content.Context): LinearLayout =
+    private fun newRow(ctx: Context): LinearLayout =
         ctx.rowH().apply { layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { bottomMargin = ctx.dp(4) } }
-
-    private fun dayDialog(ds: String) {
-        val ctx = requireContext()
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val items = CalendarRepository(db()).dayItems(ds).first()
-                val box = ctx.colV().apply { setPadding(ctx.dp(20), ctx.dp(12), ctx.dp(20), ctx.dp(8)) }
-                box.addView(ctx.tv(ds, 16f, true))
-                if (items.isEmpty()) box.addView(ctx.tv("Событий нет", 13f))
-                items.forEach { item ->
-                    val r = ctx.rowH()
-                    r.addView(ctx.bar(colorOf(item.categoryId)))
-                    r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
-                    val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-                    r.addView(t)
-                    if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
-                    box.addView(r)
-                }
-                val add = Button(ctx).apply {
-                    text = "+ событие"
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                    setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() }
-                }
-                box.addView(add)
-                box.addView(ctx.tv("Подсказка: долгое нажатие на день — быстрое создание", 11f))
-                AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
-            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
-        }
-    }
 }
