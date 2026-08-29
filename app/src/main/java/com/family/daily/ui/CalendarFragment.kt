@@ -1,7 +1,6 @@
 package com.family.daily.ui
 
 import android.app.AlertDialog
-import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -17,6 +16,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.family.daily.data.CalendarRepository
 import com.family.daily.data.DayItem
+import com.family.daily.data.occursOn
+import com.family.daily.data.dayOfWeekOf
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -31,7 +32,9 @@ class CalendarFragment : Fragment() {
     private lateinit var monthTitle: TextView
     private var monthJob: Job? = null
 
-    private fun firstDayDow(): Int = if (requireContext().getSharedPreferences("app", 0).getInt("firstDay", 1) == 1) 2 else 1
+    private fun pref() = requireContext().getSharedPreferences("app", 0)
+    private fun firstDayDow(): Int = if (pref().getInt("firstDay", 1) == 1) 2 else 1
+    private fun addDaysStr(n: Int): String { val c = Calendar.getInstance(); c.add(Calendar.DAY_OF_MONTH, n); return String.format("%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)) }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         val ctx = requireContext()
@@ -51,6 +54,13 @@ class CalendarFragment : Fragment() {
         todayBtn.setOnClickListener { month.timeInMillis = System.currentTimeMillis(); collectMonth() }
         hdr.addView(prev); hdr.addView(monthTitle); hdr.addView(next); hdr.addView(todayBtn); hdr.addView(share)
         root.addView(hdr)
+        val modeRow = ctx.rowH()
+        val gridBtn = Button(ctx).apply { text = "Месяц" }
+        val listBtn = Button(ctx).apply { text = "Список (занятые дни)" }
+        gridBtn.setOnClickListener { pref().edit().putString("calMode", "grid").apply(); collectMonth() }
+        listBtn.setOnClickListener { pref().edit().putString("calMode", "list").apply(); collectMonth() }
+        modeRow.addView(gridBtn); modeRow.addView(listBtn)
+        root.addView(modeRow)
         grid = ctx.colV(); root.addView(grid)
         return scroll
     }
@@ -89,7 +99,7 @@ class CalendarFragment : Fragment() {
             r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
             val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             r.addView(t)
-            if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
+            if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
             todayBox.addView(r)
         }
     }
@@ -102,9 +112,10 @@ class CalendarFragment : Fragment() {
         val from = String.format("%04d-%02d-01", y, m + 1)
         val to = String.format("%04d-%02d-%02d", y, m + 1, last)
         monthTitle.text = month.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale("ru")).toString() + " " + y
+        if (pref().getString("calMode", "grid") == "list") { renderList(); return }
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                combine(db().events().between(from, to), db().school().all(), db().templates().all()) { evs, sch, tpl ->
+                combine(db().events().between(from, to), db().school().all(), db().templates().all(), db().events().repeating()) { evs, sch, tpl, reps ->
                     val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
                     evs.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
                     val cal = Calendar.getInstance(); cal.set(y, m, 1)
@@ -113,6 +124,7 @@ class CalendarFragment : Fragment() {
                         val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
                         sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
                         tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> map.getOrPut(ds) { mutableListOf() }.add(t2.categoryId) }
+                        reps.filter { r2 -> occursOn(r2, ds) }.forEach { r2 -> map.getOrPut(ds) { mutableListOf() }.add(r2.categoryId) }
                         cal.add(Calendar.DAY_OF_MONTH, 1)
                     }
                     Pair(map, allday)
@@ -120,6 +132,48 @@ class CalendarFragment : Fragment() {
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
+
+    private fun renderList() {
+        val ctx = requireContext()
+        grid.removeAllViews()
+        monthJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val db = db()
+                val from = todayStr(); val to = addDaysStr(30)
+                val evs = db.events().between(from, to).first()
+                val reps = db.events().repeating().first()
+                val sch = db.school().all().first()
+                val tpl = db.templates().all().first()
+                grid.addView(ctx.tv("Ближайшие 30 дней — только занятые дни", 14f, true))
+                var any = false
+                for (i in 0..30) {
+                    val ds = addDaysStr(i)
+                    val items = mutableListOf<DayItem>()
+                    evs.filter { it.date == ds }.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
+                    reps.filter { occursOn(it, ds) }.forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
+                    val dow = dayOfWeekOf(ds)
+                    sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { items.add(DayItem("school", it2id(s2), "В школе", s2.start, s2.end, false, 3, true)) }
+                    tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { items.add(DayItem("tpl", t2.id, t2.title, t2.start, t2.end, false, t2.categoryId, t2.silent)) }
+                    if (items.isEmpty()) continue
+                    any = true
+                    val card = ctx.card(); val col = ctx.colV()
+                    col.addView(ctx.tv(ds, 14f, true))
+                    items.sortedBy { if (it.allDay) "00:00" else it.start }.forEach { it ->
+                        val r = ctx.rowH()
+                        r.addView(ctx.bar(colorOf(it.categoryId)))
+                        r.addView(ctx.tv(if (it.allDay) "весь день" else it.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                        val t = ctx.tv(it.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        r.addView(t)
+                        if (it.kind == "ev" || it.kind == "rep") { val eid = it.id; r.setOnClickListener { showEventView(ctx, eid) } }
+                        col.addView(r)
+                    }
+                    card.addView(col); grid.addView(card)
+                }
+                if (!any) grid.addView(ctx.tv("Нет событий в ближайшие 30 дней", 13f))
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+        }
+    }
+    private fun it2id(s: com.family.daily.data.SchoolSchedule) = s.id
 
     private fun renderGrid(y: Int, m: Int, last: Int, map: Map<String, MutableList<Long>>, allday: Set<String>) {
         val ctx = requireContext()
@@ -175,10 +229,16 @@ class CalendarFragment : Fragment() {
                     r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
                     val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                     r.addView(t)
-                    if (item.kind == "ev") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
+                    if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
                     box.addView(r)
                 }
-                box.addView(Button(ctx).apply { text = "+ Событие"; setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() } })
+                val add = Button(ctx).apply {
+                    text = "+ событие"
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                    setOnClickListener { EventFormDialog(ctx, presetDate = ds).show() }
+                }
+                box.addView(add)
+                box.addView(ctx.tv("Подсказка: долгое нажатие на день — быстрое создание", 11f))
                 AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
         }

@@ -74,6 +74,20 @@ class SettingsActivity : AppCompatActivity() {
         }
         root.addView(fd)
 
+        root.addView(tv("Работа"))
+        val buf = Spinner(this).apply {
+            adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, listOf("Без буфера", "Буфер 15 мин", "Буфер 30 мин", "Буфер 60 мин"))
+            setSelection(when (pref.getInt("bufferMin", 0)) { 15 -> 1; 30 -> 2; 60 -> 3; else -> 0 })
+        }
+        buf.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                pref.edit().putInt("bufferMin", listOf(0, 15, 30, 60)[pos]).apply()
+            }
+            override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
+        }
+        root.addView(buf)
+        root.addView(tv("Буфер — время на дорогу/подготовку между записями. Учитывается в свободных слотах.", 12f))
+
         root.addView(tv("Вкладки (скрыть ненужное)"))
         listOf("hideWork" to "Работа", "hideSchool" to "Школа", "hideNotes" to "Заметки").forEach { (key, name) ->
             val cb = CheckBox(this).apply { text = "Показывать «" + name + "»"; isChecked = !pref.getBoolean(key, false) }
@@ -103,7 +117,7 @@ class SettingsActivity : AppCompatActivity() {
                 }.setNegativeButton("Отмена", null).show()
             }
         })
-        root.addView(tv("О приложении: Семейный ежедневник v1.0. Офлайн, данные только на телефоне.", 12f))
+        root.addView(tv("О приложении: Семейный ежедневник v1.5. Офлайн, данные только на телефоне.", 12f))
     }
 
     private fun tv(s: String, size: Float = 16f) = TextView(this).apply { text = s; textSize = size; setPadding(0, dp(8), 0, dp(4)) }

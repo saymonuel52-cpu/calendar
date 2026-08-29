@@ -15,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-suspend fun freeSlots(db: AppDb, date: String, duration: Int): List<String> {
+suspend fun freeSlots(db: AppDb, date: String, duration: Int, buffer: Int = 0): List<String> {
     val dow = dayOfWeekOf(date) - 1
     val w = db.workSchedule().all().first().find { it.day == dow } ?: return emptyList()
     if (w.off) return emptyList()
@@ -25,7 +25,7 @@ suspend fun freeSlots(db: AppDb, date: String, duration: Int): List<String> {
     var t = minutesOf(w.start)
     while (t + duration <= minutesOf(w.end)) {
         val s = t; val e = t + duration
-        if (s >= nowMin && busy.none { b -> minutesOf(b.start) < e && s < minutesOf(b.end) }) res.add(fmtMin(s) + "–" + fmtMin(e))
+        if (s >= nowMin && busy.none { b -> (minutesOf(b.start) - buffer) < e && s < (minutesOf(b.end) + buffer) }) res.add(fmtMin(s) + "–" + fmtMin(e))
         t += 60
     }
     return res
@@ -39,12 +39,14 @@ class BookingDialog(private val ctx: Context, private val clientId: Long? = null
             if (clients.isEmpty()) { Toast.makeText(ctx, "Сначала добавьте клиента", Toast.LENGTH_SHORT).show(); ClientDialog(ctx) { BookingDialog(ctx, onSaved = onSaved).show() }.show(); return@launch }
             val services = db.services().all().first()
             if (services.isEmpty()) { Toast.makeText(ctx, "Сначала добавьте услугу", Toast.LENGTH_SHORT).show(); ServiceDialog(ctx).show(); return@launch }
+            val buffer = ctx.getSharedPreferences("app", 0).getInt("bufferMin", 0)
             val f = Form(ctx)
             val cl = f.spin(clients.map { it.name })
             clientId?.let { id -> clients.indexOfFirst { it.id == id }.takeIf { it >= 0 }?.let { cl.setSelection(it) } }
             val sv = f.spin(services.map { it.name + " · " + it.duration + " мин · " + it.price.toInt() + " ₽" })
             f.label("Дата"); val date = DateBtn(ctx, todayStr()); f.add(date)
-            f.label("Свободные слоты (рабочие часы)"); val slotsBox = ctx.colV(); f.add(slotsBox)
+            f.label("Свободные слоты" + (if (buffer > 0) " (буфер " + buffer + " мин)" else ""))
+            val slotsBox = ctx.colV(); f.add(slotsBox)
             val rem = f.spin(REM_OPTIONS)
             var chosen: String? = null
             fun refreshSlots() {
@@ -52,8 +54,8 @@ class BookingDialog(private val ctx: Context, private val clientId: Long? = null
                     chosen = null
                     slotsBox.removeAllViews()
                     val dur = services[sv.selectedItemPosition].duration
-                    val slots = freeSlots(db, date.value, dur)
-                    if (slots.isEmpty()) slotsBox.addView(ctx.tv("Нет свободных слотов (выходной или всё занято)", 13f))
+                    val slots = freeSlots(db, date.value, dur, buffer)
+                    if (slots.isEmpty()) slotsBox.addView(ctx.tv("Нет свободных слотов (выходной, всё занято или буфер)", 13f))
                     slots.forEach { s ->
                         slotsBox.addView(Button(ctx).apply {
                             text = s
