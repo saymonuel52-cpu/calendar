@@ -178,7 +178,7 @@ class CalendarFragment : Fragment() {
                     items.sortedBy { if (it.allDay) "00:00" else it.start }.forEach { item ->
                         val r = ctx.rowH()
                         r.addView(ctx.bar(colorOf(item.categoryId)))
-                        r.addView(ctx.tv(if (it.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                        r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
                         val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                         r.addView(t)
                         if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
