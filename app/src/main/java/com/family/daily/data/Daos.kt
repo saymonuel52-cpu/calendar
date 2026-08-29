@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM events WHERE date = :d AND categoryId = 1 AND status != 'Отменён'") suspend fun workOn(d: String): List<Event>
     @Query("SELECT * FROM events WHERE categoryId = 1 AND status = 'Завершено' AND date LIKE :p ORDER BY date") suspend fun monthDone(p: String): List<Event>
     @Query("SELECT * FROM events WHERE clientId = :cid ORDER BY date DESC") suspend fun byClient(cid: Long): List<Event>
+    @Query("SELECT * FROM events WHERE repeatType != 'NONE'") fun repeating(): Flow<List<Event>>
+    @Query("SELECT * FROM events WHERE repeatType != 'NONE'") suspend fun repeatingList(): List<Event>
     @Insert suspend fun insert(e: Event): Long
     @Update suspend fun update(e: Event)
     @Query("DELETE FROM events WHERE id = :id") suspend fun delete(id: Long)

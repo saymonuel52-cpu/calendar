@@ -31,7 +31,7 @@ data class Event(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String, val date: String, val start: String = "", val end: String = "",
     val allDay: Boolean = false, val categoryId: Long = 1, val location: String = "", val note: String = "",
-    val reminders: String = "", val repeatType: String = "NONE", val isAlarm: Boolean = false,
+    val reminders: String = "", val repeatType: String = "NONE", val repeatDays: String = "", val isAlarm: Boolean = false,
     val status: String = "", val clientId: Long? = null, val serviceId: Long? = null, val price: Double? = null,
     val organizerId: Long? = null, val sourceType: String = "EVENT", val silent: Boolean = false
 )

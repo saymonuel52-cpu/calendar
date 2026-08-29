@@ -17,7 +17,11 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.family.daily.data.AppDb
 import com.family.daily.data.ReminderQueue
+import com.family.daily.data.occursOn
+import com.family.daily.ui.minutesOf
+import com.family.daily.ui.todayStr
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object NotificationHelper {
@@ -41,10 +45,27 @@ class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p
     override suspend fun doWork(): Result {
         try {
             val db = AppDb.get(applicationContext)
+            val pref = applicationContext.getSharedPreferences("app", Context.MODE_PRIVATE)
             db.reminders().due(System.currentTimeMillis()).forEach { r ->
                 NotificationHelper.post(applicationContext, r.id.toInt(), "Напоминание", r.title)
                 db.reminders().markFired(r.id)
             }
+            val today = todayStr()
+            val c = Calendar.getInstance()
+            val now = c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE)
+            db.events().repeatingList().filter { occursOn(it, today) && !it.allDay && it.start.isNotBlank() }.forEach { e ->
+                e.reminders.split(",").mapNotNull { it.trim().toIntOrNull() }.forEach { min ->
+                    val fire = minutesOf(e.start) - min
+                    if (now in fire..minutesOf(e.start)) {
+                        val key = "rep" + e.id + "_" + today + "_" + min
+                        if (!pref.getBoolean(key, false)) {
+                            pref.edit().putBoolean(key, true).apply()
+                            NotificationHelper.post(applicationContext, (e.id * 100 + min).toInt(), "Напоминание", e.title + " (повтор) в " + e.start)
+                        }
+                    }
+                }
+            }
+            pref.all.keys.filter { it.startsWith("rep") && !it.contains(today) }.forEach { pref.edit().remove(it).apply() }
         } catch (e: Exception) { return Result.retry() }
         return Result.success()
     }
