@@ -1,7 +1,7 @@
 package com.family.daily.ui
-import android.content.Intent
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -149,23 +149,23 @@ class CalendarFragment : Fragment() {
                 var any = false
                 for (i in 0..30) {
                     val ds = addDaysStr(i)
+                    val dow = dayOfWeekOf(ds)
                     val items = mutableListOf<DayItem>()
-                    evs.filter { it.date == ds }.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
-                    reps.filter { occursOn(it, ds) }.forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
-                    sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> items.add(DayItem("school", s2.id, "В школе", s2.start, s2.end, false, 3, true)) }
-                    tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> items.add(DayItem("tpl", t2.id, t2.title, t2.start, t2.end, false, t2.categoryId, t2.silent)) }
-                    tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { items.add(DayItem("tpl", t2.id, t2.title, t2.start, t2.end, false, t2.categoryId, t2.silent)) }
+                    evs.filter { e -> e.date == ds }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
+                    reps.filter { r -> occursOn(r, ds) }.forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
+                    sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
+                    tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
                     if (items.isEmpty()) continue
                     any = true
                     val card = ctx.card(); val col = ctx.colV()
                     col.addView(ctx.tv(ds, 14f, true))
-                    items.sortedBy { if (it.allDay) "00:00" else it.start }.forEach { it ->
+                    items.sortedBy { if (it.allDay) "00:00" else it.start }.forEach { item ->
                         val r = ctx.rowH()
-                        r.addView(ctx.bar(colorOf(it.categoryId)))
-                        r.addView(ctx.tv(if (it.allDay) "весь день" else it.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
-                        val t = ctx.tv(it.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                        r.addView(ctx.bar(colorOf(item.categoryId)))
+                        r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
+                        val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                         r.addView(t)
-                        if (it.kind == "ev" || it.kind == "rep") { val eid = it.id; r.setOnClickListener { showEventView(ctx, eid) } }
+                        if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
                         col.addView(r)
                     }
                     card.addView(col); grid.addView(card)
@@ -174,7 +174,6 @@ class CalendarFragment : Fragment() {
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }
-    private fun it2id(s: com.family.daily.data.SchoolSchedule) = s.id
 
     private fun renderGrid(y: Int, m: Int, last: Int, map: Map<String, MutableList<Long>>, allday: Set<String>) {
         val ctx = requireContext()
