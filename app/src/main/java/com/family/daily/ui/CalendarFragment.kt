@@ -1,4 +1,5 @@
 package com.family.daily.ui
+import android.content.Intent
 
 import android.app.AlertDialog
 import android.graphics.Color
@@ -151,8 +152,8 @@ class CalendarFragment : Fragment() {
                     val items = mutableListOf<DayItem>()
                     evs.filter { it.date == ds }.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
                     reps.filter { occursOn(it, ds) }.forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
-                    val dow = dayOfWeekOf(ds)
-                    sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { items.add(DayItem("school", it2id(s2), "В школе", s2.start, s2.end, false, 3, true)) }
+                    sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> items.add(DayItem("school", s2.id, "В школе", s2.start, s2.end, false, 3, true)) }
+                    tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> items.add(DayItem("tpl", t2.id, t2.title, t2.start, t2.end, false, t2.categoryId, t2.silent)) }
                     tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { items.add(DayItem("tpl", t2.id, t2.title, t2.start, t2.end, false, t2.categoryId, t2.silent)) }
                     if (items.isEmpty()) continue
                     any = true
