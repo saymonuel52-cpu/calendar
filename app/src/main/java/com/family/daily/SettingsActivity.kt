@@ -101,6 +101,22 @@ class SettingsActivity : AppCompatActivity() {
         simple.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("simpleMode", c).apply(); bump() }
         root.addView(simple)
 
+        root.addView(tv("Модули (конструктор)"))
+        listOf(
+            "hideWork" to "Работа (вкладка)",
+            "hideSchool" to "Школа (вкладка)",
+            "hideNotes" to "Заметки (вкладка)",
+            "hideShop" to "Покупки (в Семье)",
+            "hideHealth" to "Здоровье (в Семье)"
+        ).forEach { (key, name) ->
+            val cb = CheckBox(this).apply { text = "Модуль «" + name + "»"; isChecked = !pref.getBoolean(key, false) }
+            cb.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean(key, !c).apply(); bump() }
+            root.addView(cb)
+        }
+        val mc = SwitchCompat(this).apply { text = "Контакты из телефона"; isChecked = pref.getBoolean("modContacts", false) }
+        mc.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("modContacts", c).apply(); bump() }
+        root.addView(mc)
+
         root.addView(tv("Внешний вид"))
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
         dark.setOnCheckedChangeListener { _, c ->
@@ -135,13 +151,6 @@ class SettingsActivity : AppCompatActivity() {
         }
         root.addView(buf)
         root.addView(tv("Буфер — время на дорогу/подготовку между записями.", 12f))
-
-        root.addView(tv("Вкладки (скрыть ненужное)"))
-        listOf("hideWork" to "Работа", "hideSchool" to "Школа", "hideNotes" to "Заметки").forEach { (key, name) ->
-            val cb = CheckBox(this).apply { text = "Показывать «" + name + "»"; isChecked = !pref.getBoolean(key, false) }
-            cb.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean(key, !c).apply(); bump() }
-            root.addView(cb)
-        }
 
         root.addView(tv("Данные"))
         root.addView(Button(this).apply {
