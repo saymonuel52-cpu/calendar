@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -28,6 +29,8 @@ import java.util.Calendar
 class CalendarFragment : Fragment() {
     private val month = Calendar.getInstance()
     private lateinit var root: LinearLayout
+    private lateinit var familyCard: View
+    private lateinit var familyBox: LinearLayout
     private lateinit var dayTitle: TextView
     private lateinit var dayBox: LinearLayout
     private lateinit var grid: LinearLayout
@@ -37,8 +40,8 @@ class CalendarFragment : Fragment() {
     private var selectedDay = todayStr()
 
     private fun pref() = requireContext().getSharedPreferences("app", 0)
+    private fun simple() = pref().getBoolean("simpleMode", false)
     private fun firstDayDow(): Int = if (pref().getInt("firstDay", 1) == 1) 2 else 1
-    private fun addDaysStr(n: Int): String { val c = Calendar.getInstance(); c.add(Calendar.DAY_OF_MONTH, n); return String.format("%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)) }
     private fun smallBtn(ctx: Context, text: String): Button = Button(ctx).apply { this.text = text; minWidth = 0; minimumWidth = 0; minHeight = 0; minimumHeight = 0 }
 
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
@@ -46,6 +49,9 @@ class CalendarFragment : Fragment() {
         val scroll = ScrollView(ctx)
         root = ctx.colV().apply { setPadding(ctx.dp(12), ctx.dp(12), ctx.dp(12), ctx.dp(96)) }
         scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        familyCard = ctx.card(); familyBox = ctx.colV(); (familyCard as android.view.ViewGroup).addView(familyBox)
+        familyCard.visibility = View.GONE
+        root.addView(familyCard)
         val tc = ctx.card()
         val tcol = ctx.colV()
         dayTitle = ctx.tv("Сегодня", 16f, true)
@@ -67,7 +73,7 @@ class CalendarFragment : Fragment() {
         root.addView(hdr)
         val modeRow = ctx.rowH()
         val gridBtn = smallBtn(ctx, "Месяц")
-        val listBtn = smallBtn(ctx, "Список (занятые дни)")
+        val listBtn = smallBtn(ctx, if (simple()) "Ближайшие 7 дней" else "Список (занятые дни)")
         gridBtn.setOnClickListener { pref().edit().putString("calMode", "grid").apply(); collectMonth() }
         listBtn.setOnClickListener { pref().edit().putString("calMode", "list").apply(); collectMonth() }
         modeRow.addView(gridBtn); modeRow.addView(listBtn)
@@ -76,7 +82,41 @@ class CalendarFragment : Fragment() {
         return scroll
     }
 
-    override fun onResume() { super.onResume(); collectMonth(); collectDay() }
+    override fun onResume() { super.onResume(); collectMonth(); collectDay(); loadFamilyCard() }
+
+    override fun onViewCreated(v: View, s: Bundle?) {
+        super.onViewCreated(v, s)
+        collectMonth()
+        collectDay()
+        loadFamilyCard()
+    }
+
+    private fun loadFamilyCard() {
+        if (!isAdded) return
+        val ctx = requireContext()
+        if (!simple()) { familyCard.visibility = View.GONE; return }
+        familyCard.visibility = View.VISIBLE
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val members = db().members().all().first()
+                familyBox.removeAllViews()
+                familyBox.addView(ctx.tv("Связаться с семьёй", 18f, true))
+                val withPhone = members.filter { it.phone.isNotBlank() }
+                if (withPhone.isEmpty()) familyBox.addView(ctx.tv("Добавьте телефоны: Семья → Семья → ✏️", 13f))
+                withPhone.forEach { m ->
+                    val b = Button(ctx).apply {
+                        text = "📞 " + m.name
+                        textSize = 18f * ctx.fontScale()
+                        minWidth = 0; minimumWidth = 0
+                        setOnClickListener {
+                            try { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + m.phone.replace(Regex("[^0-9+]"), "")))) } catch (_: Exception) {}
+                        }
+                    }
+                    familyBox.addView(b)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
+        }
+    }
 
     private fun shareDay() {
         val ctx = requireContext()
@@ -87,12 +127,6 @@ class CalendarFragment : Fragment() {
                 startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Поделиться днём"))
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { showCrashDialog(ctx, e) }
         }
-    }
-
-    override fun onViewCreated(v: View, s: Bundle?) {
-        super.onViewCreated(v, s)
-        collectMonth()
-        collectDay()
     }
 
     private fun collectDay() {
@@ -153,17 +187,18 @@ class CalendarFragment : Fragment() {
     private fun renderList() {
         val ctx = requireContext()
         grid.removeAllViews()
+        val days = if (simple()) 7 else 30
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val db = db()
-                val from = todayStr(); val to = addDaysStr(30)
+                val from = todayStr(); val to = addDaysStr(days)
                 val evs = db.events().between(from, to).first()
                 val reps = db.events().repeating().first()
                 val sch = db.school().all().first()
                 val tpl = db.templates().all().first()
-                grid.addView(ctx.tv("Ближайшие 30 дней — только занятые дни", 14f, true))
+                grid.addView(ctx.tv((if (simple()) "Ближайшие 7 дней" else "Ближайшие 30 дней — только занятые дни"), 14f, true))
                 var any = false
-                for (i in 0..30) {
+                for (i in 0..days) {
                     val ds = addDaysStr(i)
                     val dow = dayOfWeekOf(ds)
                     val items = mutableListOf<DayItem>()
@@ -186,7 +221,7 @@ class CalendarFragment : Fragment() {
                     }
                     card.addView(col); grid.addView(card)
                 }
-                if (!any) grid.addView(ctx.tv("Нет событий в ближайшие 30 дней", 13f))
+                if (!any) grid.addView(ctx.tv("Нет событий", 13f))
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
     }

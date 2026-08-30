@@ -3,6 +3,7 @@ package com.family.daily.ui
 import android.app.AlertDialog
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.ClipboardManager
 import android.content.Context
 import android.view.View
 import android.widget.Button
@@ -66,6 +67,16 @@ class EventFormDialog(private val ctx: Context, private val existing: Event? = n
         val db = AppDb.get(ctx); val scope = CoroutineScope(Dispatchers.Main)
         val f = Form(ctx)
         val title = f.edit("Название *", existing?.title ?: "")
+        val paste = Button(ctx).apply {
+            text = "📋 Вставить из буфера"
+            minWidth = 0; minimumWidth = 0
+            setOnClickListener {
+                val cm = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val txt = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+                if (txt.isNotBlank()) title.setText(txt) else Toast.makeText(ctx, "Буфер пуст", Toast.LENGTH_SHORT).show()
+            }
+        }
+        f.add(paste)
         f.label("Дата"); val date = DateBtn(ctx, existing?.date ?: presetDate ?: todayStr()); f.add(date)
         val allDay = f.check("Весь день", existing?.allDay ?: false)
         f.label("Начало"); val start = TimeBtn(ctx, existing?.start ?: "08:00"); f.add(start)

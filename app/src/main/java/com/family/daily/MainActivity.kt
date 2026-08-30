@@ -49,6 +49,7 @@ class MainActivity : AppCompatActivity() {
         val nav = findViewById<BottomNavigationView>(R.id.nav)
         val fab = findViewById<FloatingActionButton>(R.id.fab)
         val menu = findViewById<LinearLayout>(R.id.fabmenu)
+        if (getSharedPreferences("app", MODE_PRIVATE).getBoolean("simpleMode", false)) fab.visibility = View.GONE
         ids.forEachIndexed { idx, id -> nav.menu.findItem(id).isVisible = visible.contains(idx) }
         pager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount() = visible.size
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun computeVisible(): List<Int> {
         val p = getSharedPreferences("app", MODE_PRIVATE)
+        if (p.getBoolean("simpleMode", false)) return listOf(0, 2, 4)
         val list = mutableListOf(0, 2)
         if (!p.getBoolean("hideWork", false)) list.add(1)
         if (!p.getBoolean("hideSchool", false)) list.add(3)

@@ -16,6 +16,9 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.lifecycleScope
 import com.family.daily.data.AppDb
+import com.family.daily.data.CalendarRepository
+import com.family.daily.ui.addDaysStr
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
@@ -42,6 +45,46 @@ class SettingsActivity : AppCompatActivity() {
             } catch (e: Exception) { Toast.makeText(this@SettingsActivity, "Файл не распознан", Toast.LENGTH_SHORT).show() }
         }
     }
+    private val rcPdf = registerForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri ->
+        if (uri != null) lifecycleScope.launch {
+            try {
+                val doc = android.graphics.pdf.PdfDocument()
+                val info = android.graphics.pdf.PdfDocument.PageInfo.Builder(595, 842, 1).create()
+                var page = doc.startPage(info)
+                var canvas = page.canvas
+                val paint = android.graphics.Paint().apply { color = android.graphics.Color.BLACK; textSize = 22f }
+                var y = 60f
+                fun newPageIfNeeded() {
+                    if (y > 800f) { doc.finishPage(page); page = doc.startPage(info); canvas = page.canvas; y = 60f }
+                }
+                canvas.drawText("РАСПИСАНИЕ СЕМЬИ", 40f, y, paint); y += 40f
+                db.school().all().first().forEach { s ->
+                    newPageIfNeeded()
+                    val child = db.members().byId(s.childId)?.name ?: "Ребёнок"
+                    canvas.drawText(child + ": Пн-Пт " + s.start + "-" + s.end, 40f, y, paint); y += 34f
+                }
+                y += 16f
+                newPageIfNeeded()
+                canvas.drawText("БЛИЖАЙШИЕ 7 ДНЕЙ:", 40f, y, paint); y += 34f
+                val repo = CalendarRepository(db)
+                for (i in 0..6) {
+                    val ds = addDaysStr(i)
+                    val items = repo.dayItems(ds).first()
+                    newPageIfNeeded()
+                    canvas.drawText(ds, 40f, y, paint); y += 30f
+                    if (items.isEmpty()) { newPageIfNeeded(); canvas.drawText("   свободно", 40f, y, paint); y += 30f }
+                    items.forEach { it2 ->
+                        newPageIfNeeded()
+                        canvas.drawText("   " + (if (it2.allDay) "весь день" else it2.start) + " " + it2.title, 40f, y, paint); y += 30f
+                    }
+                }
+                doc.finishPage(page)
+                contentResolver.openOutputStream(uri)?.use { doc.writeTo(it) }
+                doc.close()
+                Toast.makeText(this@SettingsActivity, "PDF сохранён — можно распечатать", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) { Toast.makeText(this@SettingsActivity, "Ошибка PDF", Toast.LENGTH_SHORT).show() }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +95,11 @@ class SettingsActivity : AppCompatActivity() {
         title = "Настройки"
 
         fun bump() { pref.edit().putInt("uiVersion", pref.getInt("uiVersion", 0) + 1).apply() }
+
+        root.addView(tv("Доступность"))
+        val simple = SwitchCompat(this).apply { text = "Простой режим (крупный шрифт, 3 вкладки, без кнопки +)"; isChecked = pref.getBoolean("simpleMode", false) }
+        simple.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("simpleMode", c).apply(); bump() }
+        root.addView(simple)
 
         root.addView(tv("Внешний вид"))
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
@@ -86,7 +134,7 @@ class SettingsActivity : AppCompatActivity() {
             override fun onNothingSelected(p: android.widget.AdapterView<*>?) {}
         }
         root.addView(buf)
-        root.addView(tv("Буфер — время на дорогу/подготовку между записями. Учитывается в свободных слотах.", 12f))
+        root.addView(tv("Буфер — время на дорогу/подготовку между записями.", 12f))
 
         root.addView(tv("Вкладки (скрыть ненужное)"))
         listOf("hideWork" to "Работа", "hideSchool" to "Школа", "hideNotes" to "Заметки").forEach { (key, name) ->
@@ -104,6 +152,10 @@ class SettingsActivity : AppCompatActivity() {
             text = "📥 Импорт из JSON"
             setOnClickListener { rcImport.launch(arrayOf("application/json", "*/*")) }
         })
+        root.addView(Button(this).apply {
+            text = "🖨 Расписание на холодильник (PDF)"
+            setOnClickListener { rcPdf.launch("raspisanie_semji.pdf") }
+        })
         val lb = pref.getString("lastBackup", null)
         if (lb != null) root.addView(tv("Последний бэкап: " + lb, 12f))
         root.addView(Button(this).apply {
@@ -120,6 +172,7 @@ class SettingsActivity : AppCompatActivity() {
         root.addView(tv("О приложении: Семейный ежедневник v1.5. Офлайн, данные только на телефоне.", 12f))
     }
 
-    private fun tv(s: String, size: Float = 16f) = TextView(this).apply { text = s; textSize = size; setPadding(0, dp(8), 0, dp(4)) }
+    private fun tv(s: String, size: Float = 16f) = TextView(this).apply { text = s; textSize = size * fontScaleLocal(); setPadding(0, dp(8), 0, dp(4)) }
+    private fun fontScaleLocal(): Float = if (pref.getBoolean("simpleMode", false)) 1.35f else 1f
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
 }

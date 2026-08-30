@@ -18,9 +18,11 @@ import com.google.android.material.card.MaterialCardView
 import java.util.Calendar
 
 fun Context.dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+fun Context.fontScale(): Float = if (getSharedPreferences("app", 0).getBoolean("simpleMode", false)) 1.35f else 1f
 fun colorOf(cat: Long): Int = Color.parseColor(when (cat) { 1L -> "#1E88E5"; 2L -> "#EC407A"; 3L -> "#43A047"; 4L -> "#FB8C00"; 5L -> "#8E24AA"; 6L -> "#8D6E63"; else -> "#757575" })
 fun catName(cat: Long): String = when (cat) { 1L -> "Работа"; 2L -> "Семья"; 3L -> "Школа"; 4L -> "Личное"; 5L -> "Здоровье"; 6L -> "Питомец"; else -> "?" }
 fun todayStr(): String { val c = Calendar.getInstance(); return String.format("%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)) }
+fun addDaysStr(n: Int): String { val c = Calendar.getInstance(); c.add(Calendar.DAY_OF_MONTH, n); return String.format("%04d-%02d-%02d", c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH)) }
 fun minutesOf(hm: String): Int { val p = hm.split(":"); return (p.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (p.getOrNull(1)?.toIntOrNull() ?: 0) }
 fun fmtMin(min: Int): String = String.format("%02d:%02d", min / 60, min % 60)
 fun dayOfWeekOf(date: String): Int { val p = date.split("-"); return Calendar.getInstance().apply { set(p[0].toInt(), p[1].toInt() - 1, p[2].toInt()) }.get(Calendar.DAY_OF_WEEK) }
@@ -50,7 +52,7 @@ fun Context.card(): MaterialCardView = MaterialCardView(this).apply {
     setContentPadding(dp(12), dp(12), dp(12), dp(12))
 }
 fun Context.tv(text: String, size: Float = 15f, bold: Boolean = false, color: Int = 0): TextView = TextView(this).apply {
-    this.text = text; textSize = size
+    this.text = text; textSize = size * fontScale()
     if (bold) setTypeface(null, Typeface.BOLD)
     if (color != 0) setTextColor(color)
 }
