@@ -162,7 +162,7 @@ class CalendarFragment : Fragment() {
         val last = month.getActualMaximum(Calendar.DAY_OF_MONTH)
         val from = String.format("%04d-%02d-01", y, m + 1)
         val to = String.format("%04d-%02d-%02d", y, m + 1, last)
-        monthTitle.text = month.getDisplayName(Calendar.MONTH, Calendar.LONG, java.util.Locale("ru")).toString() + " " + y
+        monthTitle.text = listOf("Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь")[m] + " " + y
         if (pref().getString("calMode", "grid") == "list") { renderList(); return }
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
