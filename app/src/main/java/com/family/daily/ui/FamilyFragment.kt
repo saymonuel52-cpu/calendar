@@ -245,9 +245,6 @@ class FamilyFragment : Fragment() {
             contactsList.addView(ctx.tv("Показаны первые 100. Используй поиск.", 11f))
         }
     }
-}
-
-
     private suspend fun checklists(ctx: android.content.Context, db: AppDb) {
         val lists = db.checklists().all().first()
         if (lists.isEmpty()) contentBox.addView(ctx.tv("Чек-листов нет. Создайте «Утро», «Вечер», «Сборы в школу».", 14f))
@@ -287,6 +284,7 @@ class FamilyFragment : Fragment() {
             }
         })
     }
+}
 
 class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val presetRole: String? = null, private val onSaved: (() -> Unit)? = null) {
     fun show() {
