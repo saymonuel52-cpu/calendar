@@ -1,4 +1,5 @@
 package com.family.daily.ui
+import com.family.daily.data.RepeatException
 import com.family.daily.data.repOccurs
 
 import android.content.Context
@@ -144,6 +145,11 @@ class CalendarFragment : Fragment() {
         val ctx = requireContext()
         dayTitle.text = if (selectedDay == todayStr()) "Сегодня" else selectedDay
         dayBox.removeAllViews()
+        if (pref().getString("cancelledDays", "").split(",").contains(selectedDay)) {
+            dayBox.addView(ctx.tv("✖ День отменён (болезнь/ЧП)", 14f, true, color = Color.parseColor("#E53935")))
+            dayBox.addView(Button(ctx).apply { text = "Вернуть день"; minWidth = 0; minimumWidth = 0; setOnClickListener { restoreDay() } })
+            return
+        }
         if (items.isEmpty()) dayBox.addView(ctx.tv("Событий нет", 13f))
         items.forEach { item ->
             val r = ctx.rowH()
@@ -161,12 +167,29 @@ class CalendarFragment : Fragment() {
                     .setPositiveButton("Отменить день") { _, _ ->
                         viewLifecycleOwner.lifecycleScope.launch {
                             db().events().onDay(selectedDay).first().forEach { e -> db().events().update(e.copy(status = "Отменён")) }
+                            db().events().repeatingList().filter { r -> occursOn(r, selectedDay) }.forEach { r -> db().repeatExceptions().insert(RepeatException(eventId = r.id, date = selectedDay)) }
+                            val p = pref()
+                            val set = p.getString("cancelledDays", "").split(",").filter { it.isNotBlank() }.toMutableSet()
+                            set.add(selectedDay)
+                            p.edit().putString("cancelledDays", set.joinToString(",")).apply()
                             toast("День отменён")
+                            collectDay(); collectMonth()
                         }
                     }.setNegativeButton("Нет", null).show()
             }
         }
         dayBox.addView(cancel)
+    }
+
+    private fun restoreDay() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            db().repeatExceptions().deleteDate(selectedDay)
+            val p = pref()
+            val set = p.getString("cancelledDays", "").split(",").filter { it.isNotBlank() && it != selectedDay }
+            p.edit().putString("cancelledDays", set.joinToString(",")).apply()
+            toast("День возвращён")
+            collectDay(); collectMonth()
+        }
     }
 
     private fun collectMonth() {
@@ -180,9 +203,10 @@ class CalendarFragment : Fragment() {
         if (pref().getString("calMode", "grid") == "list") { renderList(); return }
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
+                val cancelled = pref().getString("cancelledDays", "").split(",").filter { it.isNotBlank() }.toSet()
                 combine(db().events().between(from, to), db().school().all(), db().templates().all(), db().events().repeating(), db().notes().all()) { evs, sch, tpl, reps, notes ->
                     val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
-                    evs.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
+                    evs.filter { e -> e.status != "Отменён" }.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
                     val cal = Calendar.getInstance(); cal.set(y, m, 1)
                     for (d in 1..last) {
                         val dow = cal.get(Calendar.DAY_OF_WEEK)
@@ -193,6 +217,7 @@ class CalendarFragment : Fragment() {
                         notes.filter { n2 -> !n2.done && n2.date.isNotBlank() && n2.date <= ds && (n2.date == ds || repOccurs(n2.repeatType, n2.repeatDays, n2.date, ds)) }.forEach { map.getOrPut(ds) { mutableListOf() }.add(7L) }
                         cal.add(Calendar.DAY_OF_MONTH, 1)
                     }
+                    cancelled.forEach { map.remove(it); allday.remove(it) }
                     Pair(map, allday)
                 }.collect { pair -> renderGrid(y, m, last, pair.first, pair.second) }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
@@ -207,6 +232,7 @@ class CalendarFragment : Fragment() {
             try {
                 val db = db()
                 val from = todayStr(); val to = addDaysStr(days)
+                val cancelled = pref().getString("cancelledDays", "").split(",").filter { it.isNotBlank() }.toSet()
                 val evs = db.events().between(from, to).first()
                 val reps = db.events().repeating().first()
                 val sch = db.school().all().first()
@@ -216,9 +242,10 @@ class CalendarFragment : Fragment() {
                 var any = false
                 for (i in 0..days) {
                     val ds = addDaysStr(i)
+                    if (cancelled.contains(ds)) continue
                     val dow = dayOfWeekOf(ds)
                     val items = mutableListOf<DayItem>()
-                    evs.filter { e -> e.date == ds }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
+                    evs.filter { e -> e.date == ds && e.status != "Отменён" }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
                     reps.filter { r -> occursOn(r, ds) && excepts.none { ex -> ex.eventId == r.id && ex.date == ds } }.forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
                     sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
                     tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }

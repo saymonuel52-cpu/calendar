@@ -108,4 +108,5 @@ import kotlinx.coroutines.flow.Flow
     @Insert suspend fun insert(e: RepeatException): Long
     @Query("DELETE FROM repeat_exceptions WHERE id = :id") suspend fun delete(id: Long)
     @Query("DELETE FROM repeat_exceptions") suspend fun clear()
+    @Query("DELETE FROM repeat_exceptions WHERE date = :d") suspend fun deleteDate(d: String)
 }

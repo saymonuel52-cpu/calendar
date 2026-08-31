@@ -38,7 +38,7 @@ class CalendarRepository(private val db: AppDb) {
         val (reps, notes) = repsNotes
         val dow = dayOfWeekOf(date)
         val items = mutableListOf<DayItem>()
-        evs.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
+        evs.filter { e -> e.status != "Отменён" }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
         sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }
             .forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
         tpl.filter { t -> t.dayOfWeek == dow }
