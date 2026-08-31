@@ -228,7 +228,7 @@ class FamilyFragment : Fragment() {
                     text = "📞"; minWidth = 0; minimumWidth = 0
                     setOnClickListener { try { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + clean))) } catch (_: Exception) {} }
                 })
-                row.addView(Button(ctx).apply {
+                if (!memberPhones.contains(clean)) row.addView(Button(ctx).apply {
                     text = "→ в семью"; minWidth = 0; minimumWidth = 0
                     setOnClickListener {
                         viewLifecycleOwner.lifecycleScope.launch {

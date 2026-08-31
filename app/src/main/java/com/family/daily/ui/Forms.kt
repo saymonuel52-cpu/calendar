@@ -16,6 +16,7 @@ import android.widget.Toast
 import com.family.daily.ReminderScheduler
 import com.family.daily.data.AppDb
 import com.family.daily.data.Event
+import com.family.daily.data.occursOn
 import com.family.daily.data.EventParticipant
 import com.family.daily.data.Note
 import kotlinx.coroutines.CoroutineScope
@@ -142,9 +143,13 @@ class EventFormDialog(private val ctx: Context, private val existing: Event? = n
                         db.participants().clear(id)
                         partIds.forEach { db.participants().insert(EventParticipant(id, it)) }
                         if (remVal.isNotBlank() && repType == "NONE") ReminderScheduler.scheduleFor(db, "EVENT", id, t, date.value, if (allDay.isChecked) "" else s, remVal)
-                        onSaved?.invoke()
+                        onSaved?.invoke(); ctx.refreshWidget()
                     }
-                    val n = if (allDay.isChecked) 0 else db.events().overlaps(date.value, s, e2, existing?.id ?: -1)
+                    var n = if (allDay.isChecked) 0 else db.events().overlaps(date.value, s, e2, existing?.id ?: -1)
+                    if (n == 0 && !allDay.isChecked) {
+                        val reps = db.events().repeatingList()
+                        if (reps.any { r -> (existing == null || r.id != existing.id) && occursOn(r, date.value) && minutesOf(r.start) < minutesOf(e2) && minutesOf(s) < minutesOf(r.end) }) n = 1
+                    }
                     if (n > 0) AlertDialog.Builder(ctx).setMessage("Пересекается с другим событием. Сохранить?").setPositiveButton("Да") { _, _ -> scope.launch { doSave() } }.setNegativeButton("Отмена", null).show()
                     else doSave()
                 }
@@ -172,7 +177,7 @@ class NoteFormDialog(private val ctx: Context, private val existing: Note? = nul
                         val id = db.notes().insert(Note(text = t, date = date.value, time = time.value, reminder = remVal))
                         if (remVal != null && date.value.isNotBlank()) ReminderScheduler.scheduleFor(db, "NOTE", id, t, date.value, time.value, remVal.toString())
                     }
-                    onSaved?.invoke()
+                    onSaved?.invoke(); ctx.refreshWidget()
                 }
             }.setNegativeButton("Отмена", null).show()
     }
@@ -195,7 +200,7 @@ fun showEventView(ctx: Context, id: Long) {
         if (e.note.isNotBlank()) box.addView(ctx.tv(e.note, 13f))
         AlertDialog.Builder(ctx).setView(box)
             .setPositiveButton("Изменить") { _, _ -> EventFormDialog(ctx, e).show() }
-            .setNeutralButton("Удалить") { _, _ -> scope.launch { db.events().delete(id) } }
+            .setNeutralButton("Удалить") { _, _ -> scope.launch { db.events().delete(id); ctx.refreshWidget() } }
             .setNegativeButton("Закрыть", null).show()
     }
 }

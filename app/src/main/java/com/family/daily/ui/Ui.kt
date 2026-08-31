@@ -63,3 +63,15 @@ fun Context.bar(color: Int): View = View(this).apply {
 fun Context.rowH(): LinearLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
 fun Context.colV(): LinearLayout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
 fun pluralVizit(n: Int): String = if (n % 10 == 1 && n % 100 != 11) "визит" else if (n % 10 in 2..4 && (n % 100 < 12 || n % 100 > 14)) "визита" else "визитов"
+fun Context.refreshWidget() {
+    try {
+        val mgr = android.appwidget.AppWidgetManager.getInstance(this)
+        val cn = android.content.ComponentName(this, com.family.daily.Widget::class.java)
+        val ids = mgr.getAppWidgetIds(cn)
+        if (ids.isNotEmpty()) {
+            val intent = android.content.Intent(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+            intent.putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+            sendBroadcast(intent)
+        }
+    } catch (_: Exception) {}
+}

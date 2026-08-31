@@ -47,7 +47,7 @@ class CalendarFragment : Fragment() {
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         val ctx = requireContext()
         val scroll = ScrollView(ctx)
-        root = ctx.colV().apply { setPadding(ctx.dp(12), ctx.dp(12), ctx.dp(12), ctx.dp(96)) }
+        root = ctx.colV().apply { setPadding(ctx.dp(8), ctx.dp(8), ctx.dp(8), ctx.dp(140)) }
         scroll.addView(root, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         familyCard = ctx.card(); familyBox = ctx.colV(); (familyCard as android.view.ViewGroup).addView(familyBox)
         familyCard.visibility = View.GONE

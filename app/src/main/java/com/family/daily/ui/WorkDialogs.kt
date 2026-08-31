@@ -81,7 +81,7 @@ class BookingDialog(private val ctx: Context, private val clientId: Long? = null
                         val id = db.events().insert(Event(title = c.name + " — " + s.name, date = date.value, start = parts[0], end = parts[1], categoryId = 1, clientId = c.id, serviceId = s.id, price = s.price, status = "Записан", sourceType = "WORK", reminders = remVal))
                         if (remVal.isNotBlank()) ReminderScheduler.scheduleFor(db, "EVENT", id, c.name + " — " + s.name, date.value, parts[0], remVal)
                         Toast.makeText(ctx, "Записано: " + c.name + ", " + date.value + ", " + slot, Toast.LENGTH_LONG).show()
-                        onSaved?.invoke()
+                        onSaved?.invoke(); ctx.refreshWidget()
                     }
                 }
                 .setNegativeButton("Отмена", null).show()
@@ -105,7 +105,7 @@ class ClientDialog(private val ctx: Context, private val existing: Client? = nul
                 scope.launch {
                     if (existing != null) db.clients().update(existing.copy(name = n, phone = phone.text.toString(), source = src.selectedItem.toString(), note = note.text.toString()))
                     else db.clients().insert(Client(name = n, phone = phone.text.toString(), source = src.selectedItem.toString(), note = note.text.toString()))
-                    onSaved?.invoke()
+                    onSaved?.invoke(); ctx.refreshWidget()
                 }
             }.setNegativeButton("Отмена", null).show()
     }
@@ -126,7 +126,7 @@ class ServiceDialog(private val ctx: Context, private val existing: Service? = n
                     val d = dur.text.toString().toIntOrNull() ?: 60; val p = price.text.toString().toDoubleOrNull() ?: 0.0
                     if (existing != null) db.services().update(existing.copy(name = n, duration = d, price = p))
                     else db.services().insert(Service(name = n, duration = d, price = p))
-                    onSaved?.invoke()
+                    onSaved?.invoke(); ctx.refreshWidget()
                 }
             }.setNegativeButton("Отмена", null).show()
     }
