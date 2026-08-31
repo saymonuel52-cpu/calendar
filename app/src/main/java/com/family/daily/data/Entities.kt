@@ -48,7 +48,7 @@ data class ShoppingItem(
 @Entity(tableName = "school_schedule")
 data class SchoolSchedule(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val childId: Long, val days: String = "1,2,3,4,5", val start: String = "08:00", val end: String = "13:00", val enabled: Boolean = true
+    val childId: Long, val days: String = "2,3,4,5,6", val start: String = "08:00", val end: String = "13:00", val enabled: Boolean = true
 )
 
 @Entity(tableName = "work_schedule")
