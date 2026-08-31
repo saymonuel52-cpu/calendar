@@ -89,7 +89,7 @@ class EventFormDialog(private val ctx: Context, private val existing: Event? = n
 
         val rep = f.spin(REP_OPTIONS)
         val repDays = mutableListOf<Int>()
-        val repDaysBtn = Button(ctx).apply { text = "Дни: не выбраны"; visibility = View.GONE }; f.add(repDaysBtn)
+        val repDaysBtn = Button(ctx).apply { setText("Дни: не выбраны"); visibility = View.GONE }; f.add(repDaysBtn)
         fun updRepBtn() { repDaysBtn.text = if (repDays.isEmpty()) "Дни: не выбраны" else "Дни: " + repDays.map { DAY_LABELS[DAY_VALS.indexOf(it)] }.joinToString(", ") }
         rep.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
@@ -168,7 +168,7 @@ class NoteFormDialog(private val ctx: Context, private val existing: Note? = nul
         val rem = f.spin(listOf("Без напоминания", "В момент", "за 5 мин", "за 10 мин", "за 15 мин", "за 30 мин", "за 1 час"))
         val rep = f.spin(REP_OPTIONS)
         val repDays = mutableListOf<Int>()
-        val repDaysBtn = Button(ctx).apply { text = "Дни: не выбраны"; visibility = View.GONE }; f.add(repDaysBtn)
+        val repDaysBtn = Button(ctx).apply { setText("Дни: не выбраны"); visibility = View.GONE }; f.add(repDaysBtn)
         fun updRepBtn() { repDaysBtn.text = if (repDays.isEmpty()) "Дни: не выбраны" else "Дни: " + repDays.map { DAY_LABELS[DAY_VALS.indexOf(it)] }.joinToString(", ") }
         rep.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) { repDaysBtn.visibility = if (pos == 4) View.VISIBLE else View.GONE }
