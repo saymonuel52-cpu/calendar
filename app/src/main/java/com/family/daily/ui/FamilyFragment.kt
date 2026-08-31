@@ -245,7 +245,7 @@ class FamilyFragment : Fragment() {
     }
 }
 
-class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val onSaved: (() -> Unit)? = null, private val presetRole: String? = null) {
+class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val presetRole: String? = null, private val onSaved: (() -> Unit)? = null) {
     fun show() {
         val db = AppDb.get(ctx); val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
         val f = Form(ctx)

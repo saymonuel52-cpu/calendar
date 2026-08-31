@@ -41,7 +41,7 @@ class CalendarRepository(private val db: AppDb) {
         reps.filter { occursOn(it, date) }
             .forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
         notes.filter { !it.done && it.date.isNotBlank() && it.date <= date && (it.date == date || repOccurs(it.repeatType, it.repeatDays, it.date, date)) }
-            .forEach { items.add(DayItem("note", it.id, it.title, it.time.ifBlank { "заметка" }, "", false, 7, true)) }
+            .forEach { items.add(DayItem("note", it.id, it.text, it.time.ifBlank { "заметка" }, "", false, 7, true)) }
         items.sortedBy { if (it.allDay) "00:00" else it.start }
     }
 }

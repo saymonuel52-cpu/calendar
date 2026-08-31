@@ -1,4 +1,5 @@
 package com.family.daily.ui
+import com.family.daily.data.repOccurs
 
 import android.content.Context
 import android.content.Intent
