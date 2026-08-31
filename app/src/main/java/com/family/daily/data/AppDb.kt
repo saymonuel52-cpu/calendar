@@ -20,9 +20,16 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("CREATE TABLE IF NOT EXISTS checklists (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE IF NOT EXISTS checklist_items (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, checklistId INTEGER NOT NULL, title TEXT NOT NULL, doneDate TEXT NOT NULL DEFAULT '')")
+    }
+}
+
 @Database(entities = [Category::class, FamilyMember::class, Client::class, Service::class, Event::class,
     EventParticipant::class, ShoppingItem::class, SchoolSchedule::class, WorkSchedule::class, Note::class,
-    Template::class, HealthRecord::class, ReminderQueue::class], version = 4, exportSchema = false)
+    Template::class, HealthRecord::class, ReminderQueue::class, Checklist::class, ChecklistItem::class], version = 5, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun categories(): CategoryDao
     abstract fun events(): EventDao
@@ -37,12 +44,14 @@ abstract class AppDb : RoomDatabase() {
     abstract fun templates(): TemplateDao
     abstract fun health(): HealthDao
     abstract fun reminders(): ReminderDao
+    abstract fun checklists(): ChecklistDao
+    abstract fun checklistItems(): ChecklistItemDao
 
     companion object {
         @Volatile private var inst: AppDb? = null
         fun get(ctx: Context): AppDb = inst ?: synchronized(this) {
             Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "family.db")
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) { seed(db) }

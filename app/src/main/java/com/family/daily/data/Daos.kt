@@ -90,3 +90,14 @@ import kotlinx.coroutines.flow.Flow
     @Query("UPDATE reminder_queue SET fired = 1 WHERE id = :id") suspend fun markFired(id: Long)
     @Insert suspend fun insert(r: ReminderQueue): Long
 }
+@Dao interface ChecklistDao {
+    @Query("SELECT * FROM checklists ORDER BY id") fun all(): Flow<List<Checklist>>
+    @Insert suspend fun insert(c: Checklist): Long
+    @Query("DELETE FROM checklists WHERE id = :id") suspend fun delete(id: Long)
+}
+@Dao interface ChecklistItemDao {
+    @Query("SELECT * FROM checklist_items WHERE checklistId = :cid ORDER BY id") fun byList(cid: Long): Flow<List<ChecklistItem>>
+    @Insert suspend fun insert(i: ChecklistItem): Long
+    @Query("UPDATE checklist_items SET doneDate = :d WHERE id = :id") suspend fun setDone(id: Long, d: String)
+    @Query("DELETE FROM checklist_items WHERE id = :id") suspend fun delete(id: Long)
+}

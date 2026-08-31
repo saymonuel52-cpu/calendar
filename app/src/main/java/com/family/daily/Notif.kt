@@ -66,6 +66,13 @@ class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p
                 }
             }
             pref.all.keys.filter { it.startsWith("rep") && !it.contains(today) }.forEach { pref.edit().remove(it).apply() }
+            val hour = c.get(Calendar.HOUR_OF_DAY)
+            if (hour >= 20 && !pref.getBoolean("closed_" + today, false) && !pref.getBoolean("closeNotified_" + today, false)) {
+                if (db.events().workOn(today).isNotEmpty()) {
+                    pref.edit().putBoolean("closeNotified_" + today, true).apply()
+                    NotificationHelper.post(applicationContext, 777, "Вечернее закрытие", "Отметь результаты визитов: Работа → Закрытие дня")
+                }
+            }
         } catch (e: Exception) { return Result.retry() }
         return Result.success()
     }

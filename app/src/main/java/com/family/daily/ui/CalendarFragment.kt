@@ -154,6 +154,19 @@ class CalendarFragment : Fragment() {
             if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
             dayBox.addView(r)
         }
+        val cancel = Button(ctx).apply {
+            text = "✖ Отменить день (болезнь/ЧП)"; minWidth = 0; minimumWidth = 0
+            setOnClickListener {
+                android.app.AlertDialog.Builder(ctx).setMessage("Пометить все события " + selectedDay + " как «Отменено»?")
+                    .setPositiveButton("Отменить день") { _, _ ->
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            db().events().onDay(selectedDay).first().forEach { e -> db().events().update(e.copy(status = "Отменён")) }
+                            toast("День отменён")
+                        }
+                    }.setNegativeButton("Нет", null).show()
+            }
+        }
+        dayBox.addView(cancel)
     }
 
     private fun collectMonth() {

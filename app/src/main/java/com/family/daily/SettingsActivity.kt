@@ -107,7 +107,8 @@ class SettingsActivity : AppCompatActivity() {
             "hideSchool" to "Школа (вкладка)",
             "hideNotes" to "Заметки (вкладка)",
             "hideShop" to "Покупки (в Семье)",
-            "hideHealth" to "Здоровье (в Семье)"
+            "hideHealth" to "Здоровье (в Семье)",
+            "hideChecklist" to "Чек-листы (в Семье)"
         ).forEach { (key, name) ->
             val cb = CheckBox(this).apply { text = "Модуль «" + name + "»"; isChecked = !pref.getBoolean(key, false) }
             cb.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean(key, !c).apply(); bump() }

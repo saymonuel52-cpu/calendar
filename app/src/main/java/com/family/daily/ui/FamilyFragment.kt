@@ -77,6 +77,7 @@ class FamilyFragment : Fragment() {
         items.add("mem" to "Семья")
         if (!pref().getBoolean("hideHealth", false)) items.add("hp" to "Здоровье")
         if (pref().getBoolean("modContacts", false)) items.add("contacts" to "Контакты")
+        if (!pref().getBoolean("hideChecklist", false)) items.add("chk" to "Чек-листы")
         items.forEach { (key, name) ->
             chipsRow.addView(Button(ctx).apply {
                 text = name; minWidth = 0; minimumWidth = 0
@@ -98,6 +99,7 @@ class FamilyFragment : Fragment() {
                     "mem" -> members(ctx, db)
                     "hp" -> health(ctx, db)
                     "contacts" -> contactsPanel(ctx)
+                    "chk" -> checklists(ctx, db)
                 }
             } catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { if (isAdded) showCrashDialog(requireContext(), e) }
         }
@@ -244,6 +246,47 @@ class FamilyFragment : Fragment() {
         }
     }
 }
+
+
+    private suspend fun checklists(ctx: android.content.Context, db: AppDb) {
+        val lists = db.checklists().all().first()
+        if (lists.isEmpty()) contentBox.addView(ctx.tv("Чек-листов нет. Создайте «Утро», «Вечер», «Сборы в школу».", 14f))
+        val today = todayStr()
+        lists.forEach { cl ->
+            val card = ctx.card(); val col = ctx.colV()
+            col.addView(ctx.tv(cl.title, 15f, true))
+            val items = db.checklistItems().byList(cl.id).first()
+            items.forEach { it ->
+                col.addView(android.widget.CheckBox(ctx).apply {
+                    text = it.title; isChecked = it.doneDate == today
+                    setOnCheckedChangeListener { _, checked -> viewLifecycleOwner.lifecycleScope.launch { db.checklistItems().setDone(it.id, if (checked) today else "") } }
+                })
+            }
+            val addRow = ctx.rowH()
+            val inp = android.widget.EditText(ctx).apply { hint = "Новый пункт"; layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) }
+            addRow.addView(inp)
+            addRow.addView(Button(ctx).apply {
+                text = "+"; minWidth = 0; minimumWidth = 0
+                setOnClickListener {
+                    val t = inp.text.toString().trim(); if (t.isEmpty()) return@setOnClickListener
+                    viewLifecycleOwner.lifecycleScope.launch { db.checklistItems().insert(com.family.daily.data.ChecklistItem(checklistId = cl.id, title = t)); showPanel() }
+                }
+            })
+            addRow.addView(Button(ctx).apply { text = "🗑"; minWidth = 0; minimumWidth = 0; setOnClickListener { viewLifecycleOwner.lifecycleScope.launch { db.checklists().delete(cl.id); showPanel() } } })
+            col.addView(addRow)
+            card.addView(col); contentBox.addView(card)
+        }
+        contentBox.addView(Button(ctx).apply {
+            text = "+ Чек-лист"
+            setOnClickListener {
+                val et = android.widget.EditText(ctx).apply { hint = "Название" }
+                android.app.AlertDialog.Builder(ctx).setView(et).setPositiveButton("Создать") { _, _ ->
+                    val t = et.text.toString().trim(); if (t.isEmpty()) return@setPositiveButton
+                    viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
+                }.setNegativeButton("Отмена", null).show()
+            }
+        })
+    }
 
 class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val presetRole: String? = null, private val onSaved: (() -> Unit)? = null) {
     fun show() {

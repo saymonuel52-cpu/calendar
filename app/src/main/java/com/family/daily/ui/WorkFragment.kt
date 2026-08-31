@@ -48,6 +48,11 @@ class WorkFragment : Fragment() {
     }
     private suspend fun bookings(ctx: android.content.Context, db: AppDb) {
         val list = db.events().byCat(1).first()
+        root.addView(Button(ctx).apply {
+            text = "🌙 Закрытие дня: отметить итоги"
+            minWidth = 0; minimumWidth = 0
+            setOnClickListener { closeDayDialog(ctx, db) }
+        })
         if (list.isEmpty()) root.addView(ctx.tv("Записей нет. Нажмите + → «Запись клиента».", 14f))
         list.forEach { e ->
             val card = ctx.card(); val col = ctx.colV()
@@ -66,6 +71,28 @@ class WorkFragment : Fragment() {
             col.addView(btns); card.addView(col); root.addView(card)
         }
     }
+    private fun closeDayDialog(ctx: android.content.Context, db: AppDb) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val today = todayStr()
+            val evs = db.events().workOn(today)
+            if (evs.isEmpty()) { toast("Сегодня записей нет"); return@launch }
+            val box = ctx.colV().apply { setPadding(ctx.dp(20), ctx.dp(12), ctx.dp(20), ctx.dp(8)) }
+            box.addView(ctx.tv("Сегодня записей: " + evs.size, 16f, true))
+            evs.forEach { e ->
+                val r = ctx.rowH()
+                val t = ctx.tv(e.start + " " + e.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                r.addView(t)
+                r.addView(Button(ctx).apply { text = "✓"; minWidth = 0; minimumWidth = 0; setOnClickListener { viewLifecycleOwner.lifecycleScope.launch { db.events().update(e.copy(status = "Завершено")); ctx.refreshWidget(); closeDayDialog(ctx, db) } } })
+                r.addView(Button(ctx).apply { text = "✗"; minWidth = 0; minimumWidth = 0; setOnClickListener { viewLifecycleOwner.lifecycleScope.launch { db.events().update(e.copy(status = "Отменён")); ctx.refreshWidget(); closeDayDialog(ctx, db) } } })
+                box.addView(r)
+            }
+            val sum = evs.filter { it.status == "Завершено" }.sumOf { it.price ?: 0.0 }.toInt()
+            box.addView(ctx.tv("Итог завершённых сегодня: " + sum + " ₽", 14f, true))
+            ctx.getSharedPreferences("app", 0).edit().putBoolean("closed_" + today, true).apply()
+            android.app.AlertDialog.Builder(ctx).setView(box).setNegativeButton("Закрыть", null).show()
+        }
+    }
+
     private suspend fun clients(ctx: android.content.Context, db: AppDb) {
         val list = db.clients().all().first()
         if (list.isEmpty()) root.addView(ctx.tv("Клиентов нет. Добавьте первого.", 14f))

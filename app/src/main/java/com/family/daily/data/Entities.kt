@@ -80,3 +80,17 @@ data class ReminderQueue(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sourceType: String, val sourceId: Long, val title: String, val fireAt: Long, val fired: Boolean = false
 )
+
+@Entity(tableName = "checklists")
+data class Checklist(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String
+)
+
+@Entity(tableName = "checklist_items")
+data class ChecklistItem(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val checklistId: Long,
+    val title: String,
+    val doneDate: String = ""
+)
