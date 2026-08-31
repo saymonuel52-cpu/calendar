@@ -245,12 +245,12 @@ class FamilyFragment : Fragment() {
     }
 }
 
-class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val onSaved: (() -> Unit)? = null) {
+class MemberDialog(private val ctx: android.content.Context, private val existing: FamilyMember? = null, private val onSaved: (() -> Unit)? = null, private val presetRole: String? = null) {
     fun show() {
         val db = AppDb.get(ctx); val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
         val f = Form(ctx)
         val name = f.edit("Имя *", existing?.name ?: "")
-        val role = f.spin(ROLES.map { roleName(it) }); existing?.let { ROLES.indexOf(it.role).takeIf { i -> i >= 0 }?.let { role.setSelection(it) } }
+        val role = f.spin(ROLES.map { roleName(it) }); (existing?.role ?: presetRole)?.let { ROLES.indexOf(it).takeIf { i -> i >= 0 }?.let { role.setSelection(it) } }
         val phone = f.edit("Телефон", existing?.phone ?: "")
         val year = f.edit("Год рождения", existing?.birthYear?.toString() ?: "")
         android.app.AlertDialog.Builder(ctx).setTitle(if (existing == null) "Новый член семьи" else "Член семьи").setView(f.root)

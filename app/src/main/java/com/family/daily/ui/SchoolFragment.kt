@@ -56,7 +56,12 @@ class SchoolDialog(private val ctx: android.content.Context, private val existin
         val db = AppDb.get(ctx); val scope = CoroutineScope(Dispatchers.Main)
         scope.launch {
             val kids = db.members().all().first().filter { it.role == "child" }
-            if (kids.isEmpty()) { Toast.makeText(ctx, "Сначала добавьте ребёнка в Семья → Семья", Toast.LENGTH_LONG).show(); return@launch }
+            if (kids.isEmpty()) {
+                android.app.AlertDialog.Builder(ctx).setMessage("Для расписания нужен член семьи с ролью «ребёнок». Добавить сейчас?")
+                    .setPositiveButton("Добавить ребёнка") { _, _ -> MemberDialog(ctx, presetRole = "child") { SchoolDialog(ctx, existing, onSaved).show() }.show() }
+                    .setNegativeButton("Отмена", null).show()
+                return@launch
+            }
             val f = Form(ctx)
             val child = f.spin(kids.map { it.name })
             existing?.let { kids.indexOfFirst { k -> k.id == it.childId }.takeIf { i -> i >= 0 }?.let { child.setSelection(it) } }

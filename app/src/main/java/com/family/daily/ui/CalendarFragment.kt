@@ -166,7 +166,7 @@ class CalendarFragment : Fragment() {
         if (pref().getString("calMode", "grid") == "list") { renderList(); return }
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                combine(db().events().between(from, to), db().school().all(), db().templates().all(), db().events().repeating()) { evs, sch, tpl, reps ->
+                combine(db().events().between(from, to), db().school().all(), db().templates().all(), db().events().repeating(), db().notes().all()) { evs, sch, tpl, reps, notes ->
                     val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
                     evs.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
                     val cal = Calendar.getInstance(); cal.set(y, m, 1)
@@ -176,6 +176,7 @@ class CalendarFragment : Fragment() {
                         sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
                         tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> map.getOrPut(ds) { mutableListOf() }.add(t2.categoryId) }
                         reps.filter { r2 -> occursOn(r2, ds) }.forEach { r2 -> map.getOrPut(ds) { mutableListOf() }.add(r2.categoryId) }
+                        notes.filter { n2 -> !n2.done && n2.date.isNotBlank() && n2.date <= ds && (n2.date == ds || repOccurs(n2.repeatType, n2.repeatDays, n2.date, ds)) }.forEach { map.getOrPut(ds) { mutableListOf() }.add(7L) }
                         cal.add(Calendar.DAY_OF_MONTH, 1)
                     }
                     Pair(map, allday)

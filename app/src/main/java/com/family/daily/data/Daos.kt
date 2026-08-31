@@ -74,6 +74,8 @@ import kotlinx.coroutines.flow.Flow
     @Update suspend fun update(n: Note)
     @Query("DELETE FROM notes WHERE id = :id") suspend fun delete(id: Long)
     @Query("DELETE FROM notes") suspend fun clear()
+    @Query("SELECT * FROM notes WHERE id = :id") suspend fun byId(id: Long): Note?
+    @Query("SELECT * FROM notes WHERE repeatType != 'NONE'") fun repeating(): Flow<List<Note>>
 }
 @Dao interface TemplateDao {
     @Query("SELECT * FROM templates") fun all(): Flow<List<Template>>

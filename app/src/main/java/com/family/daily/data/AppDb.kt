@@ -13,9 +13,16 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE notes ADD COLUMN repeatType TEXT NOT NULL DEFAULT 'NONE'")
+        db.execSQL("ALTER TABLE notes ADD COLUMN repeatDays TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 @Database(entities = [Category::class, FamilyMember::class, Client::class, Service::class, Event::class,
     EventParticipant::class, ShoppingItem::class, SchoolSchedule::class, WorkSchedule::class, Note::class,
-    Template::class, HealthRecord::class, ReminderQueue::class], version = 3, exportSchema = false)
+    Template::class, HealthRecord::class, ReminderQueue::class], version = 4, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun categories(): CategoryDao
     abstract fun events(): EventDao
@@ -35,7 +42,7 @@ abstract class AppDb : RoomDatabase() {
         @Volatile private var inst: AppDb? = null
         fun get(ctx: Context): AppDb = inst ?: synchronized(this) {
             Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "family.db")
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) { seed(db) }

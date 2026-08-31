@@ -60,7 +60,7 @@ data class WorkSchedule(
 data class Note(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val text: String, val date: String = "", val time: String = "", val reminder: Int? = null,
-    val color: String = "#FBC02D", val done: Boolean = false
+    val color: String = "#FBC02D", val done: Boolean = false, val repeatType: String = "NONE", val repeatDays: String = ""
 )
 
 @Entity(tableName = "templates")

@@ -12,23 +12,25 @@ fun dayOfWeekOf(date: String): Int {
     return Calendar.getInstance().apply { set(p[0].toInt(), p[1].toInt() - 1, p[2].toInt()) }.get(Calendar.DAY_OF_WEEK)
 }
 
-fun occursOn(e: Event, ds: String): Boolean {
-    if (e.repeatType == "NONE") return false
-    if (ds < e.date) return false
-    if (ds == e.date) return false
-    return when (e.repeatType) {
+fun repOccurs(repeatType: String, repeatDays: String, startDs: String, ds: String): Boolean {
+    if (repeatType == "NONE") return false
+    if (ds < startDs) return false
+    if (ds == startDs) return false
+    return when (repeatType) {
         "DAILY" -> true
-        "WEEKLY" -> dayOfWeekOf(ds) == dayOfWeekOf(e.date)
-        "MONTHLY" -> ds.substring(8) == e.date.substring(8)
-        "CUSTOM" -> e.repeatDays.split(",").mapNotNull { it.toIntOrNull() }.contains(dayOfWeekOf(ds))
+        "WEEKLY" -> dayOfWeekOf(ds) == dayOfWeekOf(startDs)
+        "MONTHLY" -> ds.substring(8) == startDs.substring(8)
+        "CUSTOM" -> repeatDays.split(",").mapNotNull { it.toIntOrNull() }.contains(dayOfWeekOf(ds))
         else -> false
     }
 }
 
+fun occursOn(e: Event, ds: String): Boolean = repOccurs(e.repeatType, e.repeatDays, e.date, ds)
+
 class CalendarRepository(private val db: AppDb) {
     fun dayItems(date: String): Flow<List<DayItem>> = combine(
-        db.events().onDay(date), db.school().all(), db.templates().all(), db.events().repeating()
-    ) { evs, sch, tpl, reps ->
+        db.events().onDay(date), db.school().all(), db.templates().all(), db.events().repeating(), db.notes().all()
+    ) { evs, sch, tpl, reps, notes ->
         val dow = dayOfWeekOf(date)
         val items = mutableListOf<DayItem>()
         evs.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
@@ -38,6 +40,8 @@ class CalendarRepository(private val db: AppDb) {
             .forEach { items.add(DayItem("tpl", it.id, it.title, it.start, it.end, false, it.categoryId, it.silent)) }
         reps.filter { occursOn(it, date) }
             .forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
+        notes.filter { !it.done && it.date.isNotBlank() && it.date <= date && (it.date == date || repOccurs(it.repeatType, it.repeatDays, it.date, date)) }
+            .forEach { items.add(DayItem("note", it.id, it.title, it.time.ifBlank { "заметка" }, "", false, 7, true)) }
         items.sortedBy { if (it.allDay) "00:00" else it.start }
     }
 }

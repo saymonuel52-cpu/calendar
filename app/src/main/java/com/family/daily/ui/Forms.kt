@@ -166,15 +166,36 @@ class NoteFormDialog(private val ctx: Context, private val existing: Note? = nul
         f.label("Дата (необязательно)"); val date = DateBtn(ctx, existing?.date ?: ""); f.add(date)
         f.label("Время (необязательно)"); val time = TimeBtn(ctx, existing?.time ?: "18:00"); f.add(time)
         val rem = f.spin(listOf("Без напоминания", "В момент", "за 5 мин", "за 10 мин", "за 15 мин", "за 30 мин", "за 1 час"))
+        val rep = f.spin(REP_OPTIONS)
+        val repDays = mutableListOf<Int>()
+        val repDaysBtn = Button(ctx).apply { text = "Дни: не выбраны"; visibility = View.GONE }; f.add(repDaysBtn)
+        fun updRepBtn() { repDaysBtn.text = if (repDays.isEmpty()) "Дни: не выбраны" else "Дни: " + repDays.map { DAY_LABELS[DAY_VALS.indexOf(it)] }.joinToString(", ") }
+        rep.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) { repDaysBtn.visibility = if (pos == 4) View.VISIBLE else View.GONE }
+            override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
+        }
+        repDaysBtn.setOnClickListener {
+            val checked = DAY_VALS.map { repDays.contains(it) }.toBooleanArray()
+            AlertDialog.Builder(ctx).setTitle("Какие дни недели?").setMultiChoiceItems(DAY_LABELS.toTypedArray(), checked) { _, which, isC ->
+                val dv = DAY_VALS[which]; if (isC) { if (!repDays.contains(dv)) repDays.add(dv) } else repDays.remove(dv)
+            }.setPositiveButton("ОК") { _, _ -> updRepBtn() }.show()
+        }
+        existing?.let { n2 ->
+            val pos = when (n2.repeatType) { "DAILY" -> 1; "WEEKLY" -> 2; "MONTHLY" -> 3; "CUSTOM" -> 4; else -> 0 }
+            rep.setSelection(pos)
+            if (pos == 4) { repDays.addAll(n2.repeatDays.split(",").mapNotNull { it.toIntOrNull() }); updRepBtn(); repDaysBtn.visibility = View.VISIBLE }
+        }
         AlertDialog.Builder(ctx).setTitle("Заметка").setView(f.root)
             .setPositiveButton("Сохранить") { _, _ ->
                 val t = text.text.toString().trim()
                 if (t.isEmpty()) { Toast.makeText(ctx, "Введите текст", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
                 val remVal = when (rem.selectedItemPosition) { 0 -> null; 1 -> 0; else -> listOf(5, 10, 15, 30, 60)[rem.selectedItemPosition - 2] }
+                val repTypeN = when (rep.selectedItemPosition) { 1 -> "DAILY"; 2 -> "WEEKLY"; 3 -> "MONTHLY"; 4 -> "CUSTOM"; else -> "NONE" }
+                val repDaysStrN = if (rep.selectedItemPosition == 4) repDays.joinToString(",") else ""
                 scope.launch {
-                    if (existing != null) db.notes().update(existing.copy(text = t, date = if (date.value.isBlank()) "" else date.value, time = time.value, reminder = remVal))
+                    if (existing != null) db.notes().update(existing.copy(text = t, date = if (date.value.isBlank()) "" else date.value, time = time.value, reminder = remVal, repeatType = repTypeN, repeatDays = repDaysStrN))
                     else {
-                        val id = db.notes().insert(Note(text = t, date = date.value, time = time.value, reminder = remVal))
+                        val id = db.notes().insert(Note(text = t, date = date.value, time = time.value, reminder = remVal, repeatType = repTypeN, repeatDays = repDaysStrN))
                         if (remVal != null && date.value.isNotBlank()) ReminderScheduler.scheduleFor(db, "NOTE", id, t, date.value, time.value, remVal.toString())
                     }
                     onSaved?.invoke(); ctx.refreshWidget()
@@ -203,4 +224,8 @@ fun showEventView(ctx: Context, id: Long) {
             .setNeutralButton("Удалить") { _, _ -> scope.launch { db.events().delete(id); ctx.refreshWidget() } }
             .setNegativeButton("Закрыть", null).show()
     }
+}
+fun showNoteView(ctx: Context, id: Long) {
+    val db = AppDb.get(ctx); val scope = CoroutineScope(Dispatchers.Main)
+    scope.launch { val n = db.notes().byId(id) ?: return@launch; NoteFormDialog(ctx, n).show() }
 }
