@@ -260,7 +260,7 @@ class CalendarFragment : Fragment() {
             row.addView(cell)
             if ((off + d) % 7 == 0) { grid.addView(row); row = newRow(ctx) }
         }
-        if (row.childCount > 0) grid.addView(row)
+        while (row.childCount < 7) row.addView(View(ctx).apply { layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f) }); if (row.childCount > 0) grid.addView(row)
     }
 
     private fun newRow(ctx: Context): LinearLayout =

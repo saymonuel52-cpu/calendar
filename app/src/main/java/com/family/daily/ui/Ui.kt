@@ -62,3 +62,4 @@ fun Context.bar(color: Int): View = View(this).apply {
 }
 fun Context.rowH(): LinearLayout = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
 fun Context.colV(): LinearLayout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+fun pluralVizit(n: Int): String = if (n % 10 == 1 && n % 100 != 11) "визит" else if (n % 10 in 2..4 && (n % 100 < 12 || n % 100 > 14)) "визита" else "визитов"

@@ -38,7 +38,7 @@ class WorkFragment : Fragment() {
         root.removeAllViews()
         val done = db.events().monthDone(todayStr().substring(0, 7) + "%")
         val sum = done.sumOf { it.price ?: 0.0 }.toInt()
-        root.addView(ctx.card().apply { addView(ctx.tv("Итог месяца: " + done.size + " визитов · " + sum + " ₽", 15f, true)) })
+        root.addView(ctx.card().apply { addView(ctx.tv("Итог месяца: " + done.size + " " + pluralVizit(done.size) + " · " + sum + " ₽", 15f, true)) })
         val chips = ctx.rowH()
         listOf("Записи", "Клиенты", "Услуги").forEachIndexed { idx, name ->
             chips.addView(Button(ctx).apply { text = name; setOnClickListener { panel = idx; render() } })

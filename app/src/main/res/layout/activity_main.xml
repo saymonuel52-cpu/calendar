@@ -8,8 +8,9 @@
             android:paddingStart="16dp" android:paddingEnd="8dp" android:paddingTop="8dp" android:paddingBottom="8dp">
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
                 android:text="Семейный ежедневник" android:textSize="18sp" android:textStyle="bold"/>
-            <Button android:id="@+id/btn_settings" android:layout_width="48dp" android:layout_height="48dp"
-                android:background="@android:color/transparent" android:text="⚙️" android:textSize="22sp" android:textColor="?attr/colorOnSurface"/>
+            <ImageButton android:id="@+id/btn_settings" android:layout_width="48dp" android:layout_height="48dp"
+                android:background="@android:color/transparent" android:src="@drawable/ic_settings"
+                android:contentDescription="Настройки" app:tint="?attr/colorOnSurface"/>
         </LinearLayout>
         <androidx.viewpager2.widget.ViewPager2 android:id="@+id/pager" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1"/>
         <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/nav" android:layout_width="match_parent" android:layout_height="wrap_content" app:labelVisibilityMode="labeled" app:menu="@menu/bottom_menu"/>
