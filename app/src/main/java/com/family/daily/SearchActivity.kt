@@ -21,6 +21,7 @@ import com.family.daily.ui.tv
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 class SearchActivity : AppCompatActivity() {
     private lateinit var input: EditText
@@ -63,7 +64,7 @@ class SearchActivity : AppCompatActivity() {
         val ctx = this
         results.removeAllViews()
         var any = false
-        val events = db.events().between("0000-01-01", "9999-12-31").let { kotlinx.coroutines.flow.first(it) }.filter { it.title.lowercase().contains(q) || it.note.lowercase().contains(q) }
+        val events = db.events().between("0000-01-01", "9999-12-31").first().filter { e -> e.title.lowercase().contains(q) || e.note.lowercase().contains(q) }
         if (events.isNotEmpty()) {
             any = true
             results.addView(tv("События (" + events.size + ")", 14f, true))
@@ -78,7 +79,7 @@ class SearchActivity : AppCompatActivity() {
                 card.addView(r); results.addView(card)
             }
         }
-        val clients = db.clients().all().let { kotlinx.coroutines.flow.first(it) }.filter { it.name.lowercase().contains(q) || it.phone.contains(q) || it.note.lowercase().contains(q) }
+        val clients = db.clients().all().first().filter { c -> c.name.lowercase().contains(q) || c.phone.contains(q) || c.note.lowercase().contains(q) }
         if (clients.isNotEmpty()) {
             any = true
             results.addView(tv("Клиенты (" + clients.size + ")", 14f, true))
@@ -89,7 +90,7 @@ class SearchActivity : AppCompatActivity() {
                 results.addView(card)
             }
         }
-        val members = db.members().all().let { kotlinx.coroutines.flow.first(it) }.filter { it.name.lowercase().contains(q) || it.phone.contains(q) }
+        val members = db.members().all().first().filter { m -> m.name.lowercase().contains(q) || m.phone.contains(q) }
         if (members.isNotEmpty()) {
             any = true
             results.addView(tv("Семья (" + members.size + ")", 14f, true))
@@ -100,7 +101,7 @@ class SearchActivity : AppCompatActivity() {
                 results.addView(card)
             }
         }
-        val notes = db.notes().all().let { kotlinx.coroutines.flow.first(it) }.filter { it.text.lowercase().contains(q) }
+        val notes = db.notes().all().first().filter { n -> n.text.lowercase().contains(q) }
         if (notes.isNotEmpty()) {
             any = true
             results.addView(tv("Заметки (" + notes.size + ")", 14f, true))
