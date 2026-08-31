@@ -150,7 +150,7 @@ class CalendarFragment : Fragment() {
             r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
             val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             r.addView(t)
-            if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
+            if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
             dayBox.addView(r)
         }
     }
@@ -217,7 +217,7 @@ class CalendarFragment : Fragment() {
                         r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
                         val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                         r.addView(t)
-                        if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } }
+                        if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
                         col.addView(r)
                     }
                     card.addView(col); grid.addView(card)
