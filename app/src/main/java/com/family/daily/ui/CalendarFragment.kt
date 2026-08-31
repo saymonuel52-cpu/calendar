@@ -211,6 +211,7 @@ class CalendarFragment : Fragment() {
                 val reps = db.events().repeating().first()
                 val sch = db.school().all().first()
                 val tpl = db.templates().all().first()
+                val excepts = db.repeatExceptions().allList()
                 grid.addView(ctx.tv((if (simple()) "Ближайшие 7 дней" else "Ближайшие 30 дней — только занятые дни"), 14f, true))
                 var any = false
                 for (i in 0..days) {
@@ -218,7 +219,7 @@ class CalendarFragment : Fragment() {
                     val dow = dayOfWeekOf(ds)
                     val items = mutableListOf<DayItem>()
                     evs.filter { e -> e.date == ds }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
-                    reps.filter { r -> occursOn(r, ds) }.forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
+                    reps.filter { r -> occursOn(r, ds) && excepts.none { ex -> ex.eventId == r.id && ex.date == ds } }.forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
                     sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
                     tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
                     if (items.isEmpty()) continue

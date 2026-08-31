@@ -68,6 +68,8 @@ class MainActivity : AppCompatActivity() {
         menu.findViewById<MaterialButton>(R.id.fab_note).setOnClickListener { menu.visibility = View.GONE; NoteFormDialog(this).show() }
         menu.findViewById<MaterialButton>(R.id.fab_book).setOnClickListener { menu.visibility = View.GONE; BookingDialog(this).show() }
         findViewById<View>(R.id.btn_settings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        findViewById<View>(R.id.btn_search).setOnClickListener { startActivity(Intent(this, SearchActivity::class.java)) }
+        Onboarding.showIfNeeded(this)
     }
 
     override fun onResume() {

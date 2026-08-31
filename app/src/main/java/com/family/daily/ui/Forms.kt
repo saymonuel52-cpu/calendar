@@ -17,6 +17,7 @@ import com.family.daily.ReminderScheduler
 import com.family.daily.data.AppDb
 import com.family.daily.data.Event
 import com.family.daily.data.occursOn
+import com.family.daily.data.RepeatException
 import com.family.daily.data.EventParticipant
 import com.family.daily.data.Note
 import kotlinx.coroutines.CoroutineScope
@@ -219,6 +220,21 @@ fun showEventView(ctx: Context, id: Long) {
             box.addView(ctx.tv("Участники: " + names.joinToString(", "), 13f))
         }
         if (e.note.isNotBlank()) box.addView(ctx.tv(e.note, 13f))
+        if (e.repeatType != "NONE") {
+            val excepts = db.repeatExceptions().ofEvent(e.id)
+            if (excepts.isNotEmpty()) box.addView(ctx.tv("Исключено из повтора: " + excepts.joinToString(", ") { it.date }, 12f, color = colorOf(e.categoryId)))
+            box.addView(Button(ctx).apply {
+                text = "Исключить дату…"; minWidth = 0; minimumWidth = 0
+                setOnClickListener {
+                    val et = android.widget.EditText(ctx).apply { hint = "yyyy-mm-dd (напр. " + todayStr() + ")" }
+                    android.app.AlertDialog.Builder(ctx).setTitle("Исключить из повтора").setView(et)
+                        .setPositiveButton("Исключить") { _, _ ->
+                            val d = et.text.toString().trim(); if (d.isBlank()) return@setPositiveButton
+                            scope.launch { db.repeatExceptions().insert(RepeatException(eventId = e.id, date = d)) }
+                        }.setNegativeButton("Отмена", null).show()
+                }
+            })
+        }
         AlertDialog.Builder(ctx).setView(box)
             .setPositiveButton("Изменить") { _, _ -> EventFormDialog(ctx, e).show() }
             .setNeutralButton("Удалить") { _, _ -> scope.launch { db.events().delete(id); ctx.refreshWidget() } }

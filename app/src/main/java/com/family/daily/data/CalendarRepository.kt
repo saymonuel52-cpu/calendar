@@ -29,8 +29,8 @@ fun occursOn(e: Event, ds: String): Boolean = repOccurs(e.repeatType, e.repeatDa
 
 class CalendarRepository(private val db: AppDb) {
     fun dayItems(date: String): Flow<List<DayItem>> = combine(
-        db.events().onDay(date), db.school().all(), db.templates().all(), db.events().repeating(), db.notes().all()
-    ) { evs, sch, tpl, reps, notes ->
+        db.events().onDay(date), db.school().all(), db.templates().all(), db.events().repeating(), db.notes().all(), db.repeatExceptions().all()
+    ) { evs, sch, tpl, reps, notes, excepts ->
         val dow = dayOfWeekOf(date)
         val items = mutableListOf<DayItem>()
         evs.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
@@ -38,7 +38,7 @@ class CalendarRepository(private val db: AppDb) {
             .forEach { items.add(DayItem("school", it.id, "В школе", it.start, it.end, false, 3, true)) }
         tpl.filter { it.dayOfWeek == dow }
             .forEach { items.add(DayItem("tpl", it.id, it.title, it.start, it.end, false, it.categoryId, it.silent)) }
-        reps.filter { occursOn(it, date) }
+        reps.filter { occursOn(it, date) && excepts.none { ex -> ex.eventId == it.id && ex.date == date } }
             .forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
         notes.filter { !it.done && it.date.isNotBlank() && it.date <= date && (it.date == date || repOccurs(it.repeatType, it.repeatDays, it.date, date)) }
             .forEach { items.add(DayItem("note", it.id, it.text, it.time.ifBlank { "заметка" }, "", false, 7, true)) }

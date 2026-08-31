@@ -101,3 +101,11 @@ import kotlinx.coroutines.flow.Flow
     @Query("UPDATE checklist_items SET doneDate = :d WHERE id = :id") suspend fun setDone(id: Long, d: String)
     @Query("DELETE FROM checklist_items WHERE id = :id") suspend fun delete(id: Long)
 }
+@Dao interface RepeatExceptionDao {
+    @Query("SELECT * FROM repeat_exceptions") fun all(): Flow<List<RepeatException>>
+    @Query("SELECT * FROM repeat_exceptions") suspend fun allList(): List<RepeatException>
+    @Query("SELECT * FROM repeat_exceptions WHERE eventId = :eid") suspend fun ofEvent(eid: Long): List<RepeatException>
+    @Insert suspend fun insert(e: RepeatException): Long
+    @Query("DELETE FROM repeat_exceptions WHERE id = :id") suspend fun delete(id: Long)
+    @Query("DELETE FROM repeat_exceptions") suspend fun clear()
+}

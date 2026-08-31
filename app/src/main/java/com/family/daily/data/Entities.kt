@@ -94,3 +94,10 @@ data class ChecklistItem(
     val title: String,
     val doneDate: String = ""
 )
+
+@Entity(tableName = "repeat_exceptions", indices = [Index("eventId")])
+data class RepeatException(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val eventId: Long,
+    val date: String
+)

@@ -8,6 +8,7 @@
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
         <activity android:name=".SettingsActivity"/>
+        <activity android:name=".SearchActivity"/>
         <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter><action android:name="android.intent.action.RECEIVE_BOOT_COMPLETED"/></intent-filter>
         </receiver>
