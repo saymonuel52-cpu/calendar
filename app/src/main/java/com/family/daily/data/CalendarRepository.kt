@@ -34,14 +34,14 @@ class CalendarRepository(private val db: AppDb) {
         val dow = dayOfWeekOf(date)
         val items = mutableListOf<DayItem>()
         evs.forEach { items.add(DayItem("ev", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
-        sch.filter { it.enabled && it.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }
-            .forEach { items.add(DayItem("school", it.id, "В школе", it.start, it.end, false, 3, true)) }
-        tpl.filter { it.dayOfWeek == dow }
-            .forEach { items.add(DayItem("tpl", it.id, it.title, it.start, it.end, false, it.categoryId, it.silent)) }
-        reps.filter { occursOn(it, date) && excepts.none { ex -> ex.eventId == it.id && ex.date == date } }
-            .forEach { items.add(DayItem("rep", it.id, it.title, it.start, it.end, it.allDay, it.categoryId, it.silent)) }
-        notes.filter { !it.done && it.date.isNotBlank() && it.date <= date && (it.date == date || repOccurs(it.repeatType, it.repeatDays, it.date, date)) }
-            .forEach { items.add(DayItem("note", it.id, it.text, it.time.ifBlank { "заметка" }, "", false, 7, true)) }
+        sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }
+            .forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
+        tpl.filter { t -> t.dayOfWeek == dow }
+            .forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
+        reps.filter { r -> occursOn(r, date) && excepts.none { ex -> ex.eventId == r.id && ex.date == date } }
+            .forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
+        notes.filter { n -> !n.done && n.date.isNotBlank() && n.date <= date && (n.date == date || repOccurs(n.repeatType, n.repeatDays, n.date, date)) }
+            .forEach { n -> items.add(DayItem("note", n.id, n.text, n.time.ifBlank { "заметка" }, "", false, 7, true)) }
         items.sortedBy { if (it.allDay) "00:00" else it.start }
     }
 }
