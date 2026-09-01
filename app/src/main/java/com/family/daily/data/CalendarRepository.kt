@@ -40,7 +40,7 @@ class CalendarRepository(private val db: AppDb) {
         val items = mutableListOf<DayItem>()
         evs.filter { e -> e.status != "Отменён" }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
         sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }
-            .forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
+            .forEach { s -> items.add(DayItem("school", s.id, s.title, s.start, s.end, false, s.categoryId, true)) }
         tpl.filter { t -> t.dayOfWeek == dow }
             .forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
         reps.filter { r -> occursOn(r, date) && excepts.none { ex -> ex.eventId == r.id && ex.date == date } }

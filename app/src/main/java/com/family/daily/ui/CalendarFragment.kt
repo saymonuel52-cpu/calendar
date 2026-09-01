@@ -211,7 +211,7 @@ class CalendarFragment : Fragment() {
                     for (d in 1..last) {
                         val dow = cal.get(Calendar.DAY_OF_WEEK)
                         val ds = String.format("%04d-%02d-%02d", y, m + 1, d)
-                        sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> map.getOrPut(ds) { mutableListOf() }.add(3L) }
+                        sch.filter { s2 -> s2.enabled && s2.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s2 -> map.getOrPut(ds) { mutableListOf() }.add(s2.categoryId) }
                         tpl.filter { t2 -> t2.dayOfWeek == dow }.forEach { t2 -> map.getOrPut(ds) { mutableListOf() }.add(t2.categoryId) }
                         reps.filter { r2 -> occursOn(r2, ds) }.forEach { r2 -> map.getOrPut(ds) { mutableListOf() }.add(r2.categoryId) }
                         notes.filter { n2 -> !n2.done && n2.date.isNotBlank() && n2.date <= ds && (n2.date == ds || repOccurs(n2.repeatType, n2.repeatDays, n2.date, ds)) }.forEach { map.getOrPut(ds) { mutableListOf() }.add(7L) }
@@ -247,7 +247,7 @@ class CalendarFragment : Fragment() {
                     val items = mutableListOf<DayItem>()
                     evs.filter { e -> e.date == ds && e.status != "Отменён" }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
                     reps.filter { r -> occursOn(r, ds) && excepts.none { ex -> ex.eventId == r.id && ex.date == ds } }.forEach { r -> items.add(DayItem("rep", r.id, r.title, r.start, r.end, r.allDay, r.categoryId, r.silent)) }
-                    sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> items.add(DayItem("school", s.id, "В школе", s.start, s.end, false, 3, true)) }
+                    sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }.forEach { s -> items.add(DayItem("school", s.id, s.title, s.start, s.end, false, s.categoryId, true)) }
                     tpl.filter { t -> t.dayOfWeek == dow }.forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
                     if (items.isEmpty()) continue
                     any = true

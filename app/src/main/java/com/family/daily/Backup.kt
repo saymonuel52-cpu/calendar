@@ -18,7 +18,7 @@ object Backup {
         root.put("members", JSONArray().also { a -> db.members().all().first().forEach { m -> a.put(JSONObject().put("id", m.id).put("name", m.name).put("role", m.role).put("phone", m.phone).put("birthYear", m.birthYear ?: 0)) } })
         root.put("notes", JSONArray().also { a -> db.notes().all().first().forEach { n -> a.put(JSONObject().put("id", n.id).put("text", n.text).put("date", n.date).put("time", n.time).put("reminder", n.reminder ?: -1).put("done", n.done)) } })
         root.put("shop", JSONArray().also { a -> db.shop().all().first().forEach { s -> a.put(JSONObject().put("id", s.id).put("title", s.title).put("bought", s.bought)) } })
-        root.put("school", JSONArray().also { a -> db.school().all().first().forEach { s -> a.put(JSONObject().put("id", s.id).put("childId", s.childId).put("start", s.start).put("end", s.end).put("enabled", s.enabled)) } })
+        root.put("school", JSONArray().also { a -> db.school().all().first().forEach { s -> a.put(JSONObject().put("id", s.id).put("childId", s.childId).put("start", s.start).put("end", s.end).put("enabled", s.enabled).put("days", s.days).put("title", s.title).put("categoryId", s.categoryId)) } })
         root.put("workSchedule", JSONArray().also { a -> db.workSchedule().all().first().forEach { w -> a.put(JSONObject().put("day", w.day).put("start", w.start).put("end", w.end).put("off", w.off)) } })
         root.put("templates", JSONArray().also { a -> db.templates().all().first().forEach { t -> a.put(JSONObject().put("title", t.title).put("dayOfWeek", t.dayOfWeek).put("start", t.start).put("end", t.end).put("categoryId", t.categoryId).put("silent", t.silent)) } })
         return root.toString()
@@ -42,7 +42,7 @@ object Backup {
         val sh = root.optJSONArray("shop") ?: JSONArray()
         for (i in 0 until sh.length()) { val o = sh.getJSONObject(i); db.shop().insert(com.family.daily.data.ShoppingItem(id = o.optLong("id"), title = o.optString("title"), bought = o.optBoolean("bought"))) }
         val sc = root.optJSONArray("school") ?: JSONArray()
-        for (i in 0 until sc.length()) { val o = sc.getJSONObject(i); db.school().insert(com.family.daily.data.SchoolSchedule(id = o.optLong("id"), childId = o.optLong("childId"), start = o.optString("start", "08:00"), end = o.optString("end", "13:00"), enabled = o.optBoolean("enabled", true))) }
+        for (i in 0 until sc.length()) { val o = sc.getJSONObject(i); db.school().insert(com.family.daily.data.SchoolSchedule(id = o.optLong("id"), childId = o.optLong("childId"), start = o.optString("start", "08:00"), end = o.optString("end", "13:00"), enabled = o.optBoolean("enabled", true), days = o.optString("days", "2,3,4,5,6"), title = o.optString("title", "Школа"), categoryId = o.optLong("categoryId", 3))) }
         val ws = root.optJSONArray("workSchedule") ?: JSONArray()
         for (i in 0 until ws.length()) { val o = ws.getJSONObject(i); db.workSchedule().insert(WorkSchedule(day = o.optInt("day"), start = o.optString("start", "10:00"), end = o.optString("end", "18:00"), off = o.optBoolean("off"))) }
         val tp = root.optJSONArray("templates") ?: JSONArray()

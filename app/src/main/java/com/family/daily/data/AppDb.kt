@@ -40,9 +40,16 @@ val MIGRATION_6_7 = object : Migration(6, 7) {
     }
 }
 
+val MIGRATION_7_8 = object : Migration(7, 8) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE school_schedule ADD COLUMN title TEXT NOT NULL DEFAULT 'Школа'")
+        db.execSQL("ALTER TABLE school_schedule ADD COLUMN categoryId INTEGER NOT NULL DEFAULT 3")
+    }
+}
+
 @Database(entities = [Category::class, FamilyMember::class, Client::class, Service::class, Event::class,
     EventParticipant::class, ShoppingItem::class, SchoolSchedule::class, WorkSchedule::class, Note::class,
-    Template::class, HealthRecord::class, ReminderQueue::class, Checklist::class, ChecklistItem::class, RepeatException::class], version = 7, exportSchema = false)
+    Template::class, HealthRecord::class, ReminderQueue::class, Checklist::class, ChecklistItem::class, RepeatException::class], version = 8, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun categories(): CategoryDao
     abstract fun events(): EventDao
@@ -65,7 +72,7 @@ abstract class AppDb : RoomDatabase() {
         @Volatile private var inst: AppDb? = null
         fun get(ctx: Context): AppDb = inst ?: synchronized(this) {
             Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "family.db")
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) { seed(db) }
