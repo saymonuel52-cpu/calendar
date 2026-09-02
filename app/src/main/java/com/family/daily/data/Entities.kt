@@ -54,7 +54,8 @@ data class SchoolSchedule(
     val enabled: Boolean = true,
     val days: String = "2,3,4,5,6",
     val title: String = "Школа",
-    val categoryId: Long = 3
+    val categoryId: Long = 3,
+    val dayTimes: String = ""
 )
 
 @Entity(tableName = "work_schedule")

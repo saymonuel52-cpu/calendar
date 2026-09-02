@@ -118,6 +118,23 @@ class SettingsActivity : AppCompatActivity() {
         mc.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("modContacts", c).apply(); bump() }
         root.addView(mc)
 
+        root.addView(tv("Утро"))
+        val digestOn = SwitchCompat(this).apply { text = "Утренний дайджест (план дня пушем)"; isChecked = pref.getBoolean("digestOn", true) }
+        digestOn.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("digestOn", c).apply() }
+        root.addView(digestOn)
+        val dtOpts = listOf("07:00", "07:30", "08:00", "08:30")
+        val digestTime = Spinner(this).apply {
+            adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, dtOpts)
+            setSelection(dtOpts.indexOf(pref.getString("digestTime", "07:30")).coerceAtLeast(0))
+        }
+        digestTime.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                pref.edit().putString("digestTime", dtOpts[pos]).apply()
+            }
+            override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
+        }
+        root.addView(digestTime)
+
         root.addView(tv("Внешний вид"))
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
         dark.setOnCheckedChangeListener { _, c ->

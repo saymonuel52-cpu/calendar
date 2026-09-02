@@ -47,9 +47,15 @@ val MIGRATION_7_8 = object : Migration(7, 8) {
     }
 }
 
+val MIGRATION_8_9 = object : Migration(8, 9) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE school_schedule ADD COLUMN dayTimes TEXT NOT NULL DEFAULT ''")
+    }
+}
+
 @Database(entities = [Category::class, FamilyMember::class, Client::class, Service::class, Event::class,
     EventParticipant::class, ShoppingItem::class, SchoolSchedule::class, WorkSchedule::class, Note::class,
-    Template::class, HealthRecord::class, ReminderQueue::class, Checklist::class, ChecklistItem::class, RepeatException::class], version = 8, exportSchema = false)
+    Template::class, HealthRecord::class, ReminderQueue::class, Checklist::class, ChecklistItem::class, RepeatException::class], version = 9, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun categories(): CategoryDao
     abstract fun events(): EventDao
@@ -72,7 +78,7 @@ abstract class AppDb : RoomDatabase() {
         @Volatile private var inst: AppDb? = null
         fun get(ctx: Context): AppDb = inst ?: synchronized(this) {
             Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "family.db")
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .fallbackToDestructiveMigration()
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) { seed(db) }

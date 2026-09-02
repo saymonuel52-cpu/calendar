@@ -16,6 +16,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.family.daily.data.AppDb
+import com.family.daily.data.CalendarRepository
+import kotlinx.coroutines.flow.first
 import com.family.daily.data.ReminderQueue
 import com.family.daily.data.occursOn
 import com.family.daily.ui.minutesOf
@@ -62,6 +64,18 @@ class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p
                             pref.edit().putBoolean(key, true).apply()
                             NotificationHelper.post(applicationContext, (e.id * 100 + min).toInt(), "Напоминание", e.title + " (повтор) в " + e.start)
                         }
+                    }
+                }
+            }
+            if (pref.getBoolean("digestOn", true)) {
+                val digestTime = pref.getString("digestTime", "07:30") ?: "07:30"
+                val dm = minutesOf(digestTime)
+                if (now in dm until dm + 15 && !pref.getBoolean("digestSent_" + today, false)) {
+                    pref.edit().putBoolean("digestSent_" + today, true).apply()
+                    val items = CalendarRepository(db).dayItems(today).first()
+                    if (items.isNotEmpty()) {
+                        val text = items.joinToString("\n") { (if (it.allDay) "весь день" else it.start + "–" + it.end) + " " + it.title }
+                        NotificationHelper.post(applicationContext, 888, "Доброе утро! План на сегодня", text)
                     }
                 }
             }

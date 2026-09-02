@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.CheckBox
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -17,7 +19,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class SchoolFragment : Fragment() {
-    private lateinit var root: android.widget.LinearLayout
+    private lateinit var root: LinearLayout
     override fun onCreateView(i: LayoutInflater, c: ViewGroup?, s: Bundle?): View {
         val ctx = requireContext()
         val scroll = ScrollView(ctx)
@@ -33,7 +35,7 @@ class SchoolFragment : Fragment() {
                 val ctx = requireContext(); val db = db()
                 root.removeAllViews()
                 root.addView(ctx.tv("Школа, секции, садик", 16f, true))
-                root.addView(ctx.tv("Эти интервалы показываются в календаре цветом категории — планируйте записи вокруг них.", 12f))
+                root.addView(ctx.tv("У каждого дня недели — своё время. Планируйте записи вокруг них.", 12f))
                 val list = db.school().all().first()
                 val members = db.members().all().first()
                 if (list.isEmpty()) root.addView(ctx.tv("Расписаний нет. Добавьте школу, самбо, садик…", 14f))
@@ -41,7 +43,17 @@ class SchoolFragment : Fragment() {
                     val child = members.find { it.id == s.childId }
                     val card = ctx.card(); val col = ctx.colV()
                     col.addView(ctx.tv((child?.name ?: "Ребёнок") + " — " + s.title, 15f, true))
-                    col.addView(ctx.tv(daysLabel(s.days) + " · " + s.start + "–" + s.end, 13f, color = colorOf(s.categoryId)))
+                    if (s.dayTimes.isNotBlank()) {
+                        s.dayTimes.split(",").forEach { part ->
+                            val eq = part.split("=")
+                            if (eq.size == 2) {
+                                val dv = eq[0].toIntOrNull(); val idx = DAY_VALS.indexOf(dv)
+                                if (idx >= 0) col.addView(ctx.tv(DAY_LABELS[idx] + " · " + eq[1].replace("-", "–"), 13f, color = colorOf(s.categoryId)))
+                            }
+                        }
+                    } else {
+                        col.addView(ctx.tv(daysLabel(s.days) + " · " + s.start + "–" + s.end, 13f, color = colorOf(s.categoryId)))
+                    }
                     if (!s.enabled) col.addView(ctx.tv("не ходит (каникулы/выходной)", 12f))
                     col.addView(Button(ctx).apply { text = "✏️ Изменить"; minWidth = 0; minimumWidth = 0; setOnClickListener { SchoolDialog(ctx, s) { render() }.show() } })
                     card.addView(col); root.addView(card)
@@ -71,31 +83,56 @@ class SchoolDialog(private val ctx: android.content.Context, private val existin
             val title = f.edit("Название *", existing?.title ?: "Школа")
             val child = f.spin(kids.map { it.name })
             existing?.let { kids.indexOfFirst { k -> k.id == it.childId }.takeIf { i -> i >= 0 }?.let { child.setSelection(it) } }
-            val dayVals = mutableListOf<Int>()
-            dayVals.addAll((existing?.days ?: "2,3,4,5,6").split(",").mapNotNull { it.toIntOrNull() })
-            fun daysText() = "Дни: " + (if (dayVals.isEmpty()) "не выбраны" else DAY_VALS.mapIndexedNotNull { i, v -> if (dayVals.contains(v)) DAY_LABELS[i] else null }.joinToString(", "))
-            val daysBtn = Button(ctx).apply { text = daysText() }; f.add(daysBtn)
-            daysBtn.setOnClickListener {
-                val checked = DAY_VALS.map { dayVals.contains(it) }.toBooleanArray()
-                android.app.AlertDialog.Builder(ctx).setTitle("Какие дни?").setMultiChoiceItems(DAY_LABELS.toTypedArray(), checked) { _, which, isC ->
-                    val dv = DAY_VALS[which]; if (isC) { if (!dayVals.contains(dv)) dayVals.add(dv) } else dayVals.remove(dv)
-                }.setPositiveButton("ОК") { _, _ -> daysBtn.text = daysText() }.show()
+            f.label("Недельная сетка (у каждого дня своё время)")
+            val initMap = parseInit(existing)
+            val dayChecks = mutableListOf<CheckBox>(); val dayStarts = mutableListOf<TimeBtn>(); val dayEnds = mutableListOf<TimeBtn>()
+            DAY_VALS.forEachIndexed { i, dv ->
+                val row = ctx.rowH()
+                val cb = CheckBox(ctx).apply { text = DAY_LABELS[i]; isChecked = initMap.containsKey(dv) }
+                val st = TimeBtn(ctx, initMap[dv]?.first ?: "08:00")
+                val en = TimeBtn(ctx, initMap[dv]?.second ?: "12:00")
+                st.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                en.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                row.addView(cb); row.addView(st); row.addView(en)
+                f.add(row)
+                dayChecks.add(cb); dayStarts.add(st); dayEnds.add(en)
             }
-            f.label("Начало"); val start = TimeBtn(ctx, existing?.start ?: "08:00"); f.add(start)
-            f.label("Конец"); val end = TimeBtn(ctx, existing?.end ?: "13:00"); f.add(end)
             val cat = f.spin(CAT_NAMES); cat.setSelection(((existing?.categoryId ?: 3L) - 1).toInt())
             val en = f.check("ходит", existing?.enabled ?: true)
-            android.app.AlertDialog.Builder(ctx).setTitle(if (existing == null) "Новое расписание" else "Расписание").setView(f.root)
+            val sv = ScrollView(ctx).apply { addView(f.root) }
+            android.app.AlertDialog.Builder(ctx).setTitle(if (existing == null) "Новое расписание" else "Расписание").setView(sv)
                 .setPositiveButton("Сохранить") { _, _ ->
                     val t = title.text.toString().trim()
                     if (t.isEmpty()) { Toast.makeText(ctx, "Введите название", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
-                    if (dayVals.isEmpty()) { Toast.makeText(ctx, "Выберите дни", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
+                    val sb = StringBuilder(); val daysList = mutableListOf<Int>(); var firstS = ""; var firstE = ""
+                    DAY_VALS.forEachIndexed { i, dv ->
+                        if (dayChecks[i].isChecked) {
+                            if (daysList.isNotEmpty()) sb.append(",")
+                            sb.append(dv).append("=").append(dayStarts[i].value).append("-").append(dayEnds[i].value)
+                            if (firstS.isEmpty()) { firstS = dayStarts[i].value; firstE = dayEnds[i].value }
+                            daysList.add(dv)
+                        }
+                    }
+                    if (daysList.isEmpty()) { Toast.makeText(ctx, "Отметьте хотя бы один день", Toast.LENGTH_SHORT).show(); return@setPositiveButton }
                     scope.launch {
-                        val data = SchoolSchedule(id = existing?.id ?: 0, childId = kids[child.selectedItemPosition].id, start = start.value, end = end.value, enabled = en.isChecked, days = dayVals.joinToString(","), title = t, categoryId = (cat.selectedItemPosition + 1).toLong())
+                        val data = SchoolSchedule(id = existing?.id ?: 0, childId = kids[child.selectedItemPosition].id, start = firstS, end = firstE, enabled = en.isChecked, days = daysList.joinToString(","), title = t, categoryId = (cat.selectedItemPosition + 1).toLong(), dayTimes = sb.toString())
                         if (existing != null) db.school().update(data) else db.school().insert(data)
                         onSaved?.invoke()
                     }
                 }.setNegativeButton("Отмена", null).show()
         }
+    }
+    private fun parseInit(e: SchoolSchedule?): Map<Int, Pair<String, String>> {
+        val map = mutableMapOf<Int, Pair<String, String>>()
+        if (e == null) return map
+        if (e.dayTimes.isNotBlank()) {
+            e.dayTimes.split(",").forEach { part ->
+                val eq = part.split("=")
+                if (eq.size == 2) { val d = eq[0].toIntOrNull(); val se = eq[1].split("-"); if (d != null && se.size == 2) map[d] = se[0] to se[1] }
+            }
+        } else {
+            e.days.split(",").mapNotNull { it.toIntOrNull() }.forEach { d -> map[d] = e.start to e.end }
+        }
+        return map
     }
 }

@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.combine
 import java.util.Calendar
 
 data class DayItem(val kind: String, val id: Long, val title: String, val start: String, val end: String,
-                   val allDay: Boolean, val categoryId: Long, val silent: Boolean)
+                   val allDay: Boolean, val categoryId: Long, val silent: Boolean, val memberId: Long = 0)
 
 fun dayOfWeekOf(date: String): Int {
     val p = date.split("-")
@@ -27,6 +27,22 @@ fun repOccurs(repeatType: String, repeatDays: String, startDs: String, ds: Strin
 
 fun occursOn(e: Event, ds: String): Boolean = repOccurs(e.repeatType, e.repeatDays, e.date, ds)
 
+fun schoolTimesFor(s: SchoolSchedule, dow: Int): Pair<String, String>? {
+    if (!s.enabled) return null
+    if (s.dayTimes.isNotBlank()) {
+        s.dayTimes.split(",").forEach { part ->
+            val eq = part.split("=")
+            if (eq.size == 2 && eq[0].toIntOrNull() == dow) {
+                val se = eq[1].split("-")
+                if (se.size == 2) return se[0] to se[1]
+            }
+        }
+        return null
+    }
+    if (s.days.split(",").mapNotNull { it.toIntOrNull() }.contains(dow)) return s.start to s.end
+    return null
+}
+
 class CalendarRepository(private val db: AppDb) {
     fun dayItems(date: String): Flow<List<DayItem>> = combine(
         combine(db.events().onDay(date), db.school().all(), db.templates().all(), db.events().repeating(), db.notes().all()) { evs, sch, tpl, reps, notes ->
@@ -39,8 +55,7 @@ class CalendarRepository(private val db: AppDb) {
         val dow = dayOfWeekOf(date)
         val items = mutableListOf<DayItem>()
         evs.filter { e -> e.status != "Отменён" }.forEach { e -> items.add(DayItem("ev", e.id, e.title, e.start, e.end, e.allDay, e.categoryId, e.silent)) }
-        sch.filter { s -> s.enabled && s.days.split(",").mapNotNull { x -> x.toIntOrNull() }.contains(dow) }
-            .forEach { s -> items.add(DayItem("school", s.id, s.title, s.start, s.end, false, s.categoryId, true)) }
+        sch.forEach { s -> schoolTimesFor(s, dow)?.let { t -> items.add(DayItem("school", s.id, s.title, t.first, t.second, false, s.categoryId, true, s.childId)) } }
         tpl.filter { t -> t.dayOfWeek == dow }
             .forEach { t -> items.add(DayItem("tpl", t.id, t.title, t.start, t.end, false, t.categoryId, t.silent)) }
         reps.filter { r -> occursOn(r, date) && excepts.none { ex -> ex.eventId == r.id && ex.date == date } }
