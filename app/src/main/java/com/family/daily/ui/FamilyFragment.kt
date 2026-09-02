@@ -290,7 +290,6 @@ class FamilyFragment : Fragment() {
                     viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
                 }
             }.setNegativeButton("Отмена", null).show()
-            }
         })
     }
 }
