@@ -75,3 +75,5 @@ fun Context.refreshWidget() {
         }
     } catch (_: Exception) {}
 }
+val MEMBER_COLORS = listOf("красный" to "#E53935", "оранжевый" to "#FB8C00", "жёлтый" to "#FDD835", "зелёный" to "#43A047", "голубой" to "#1E88E5", "синий" to "#3949AB", "розовый" to "#EC407A", "фиолетовый" to "#8E24AA")
+fun dayOfWeekName(date: String): String = when (dayOfWeekOf(date)) { 1 -> "вс"; 2 -> "пн"; 3 -> "вт"; 4 -> "ср"; 5 -> "чт"; 6 -> "пт"; else -> "сб" }

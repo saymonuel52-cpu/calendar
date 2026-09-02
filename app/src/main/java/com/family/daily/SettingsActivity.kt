@@ -136,6 +136,9 @@ class SettingsActivity : AppCompatActivity() {
         root.addView(digestTime)
 
         root.addView(tv("Внешний вид"))
+        val colorPerson = SwitchCompat(this).apply { text = "Цвета по детям (а не по категориям)"; isChecked = pref.getBoolean("colorByPerson", false) }
+        colorPerson.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("colorByPerson", c).apply() }
+        root.addView(colorPerson)
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
         dark.setOnCheckedChangeListener { _, c ->
             pref.edit().putBoolean("dark", c).apply()

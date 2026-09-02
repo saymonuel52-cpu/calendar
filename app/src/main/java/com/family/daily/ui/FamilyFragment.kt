@@ -292,6 +292,7 @@ class MemberDialog(private val ctx: android.content.Context, private val existin
         val f = Form(ctx)
         val name = f.edit("Имя *", existing?.name ?: "")
         val role = f.spin(ROLES.map { roleName(it) }); (existing?.role ?: presetRole)?.let { ROLES.indexOf(it).takeIf { i -> i >= 0 }?.let { role.setSelection(it) } }
+        val colSpin = f.spin(MEMBER_COLORS.map { it.first }); existing?.color?.takeIf { it.isNotBlank() }?.let { hex -> MEMBER_COLORS.indexOfFirst { it.second == hex }.takeIf { i -> i >= 0 }?.let { colSpin.setSelection(it) } }
         val phone = f.edit("Телефон", existing?.phone ?: "")
         val year = f.edit("Год рождения", existing?.birthYear?.toString() ?: "")
         android.app.AlertDialog.Builder(ctx).setTitle(if (existing == null) "Новый член семьи" else "Член семьи").setView(f.root)
@@ -300,8 +301,8 @@ class MemberDialog(private val ctx: android.content.Context, private val existin
                 if (n.isEmpty()) { android.widget.Toast.makeText(ctx, "Введите имя", android.widget.Toast.LENGTH_SHORT).show(); return@setPositiveButton }
                 scope.launch {
                     val y = year.text.toString().toIntOrNull()
-                    if (existing != null) db.members().update(existing.copy(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y))
-                    else db.members().insert(FamilyMember(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y))
+                    if (existing != null) db.members().update(existing.copy(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second))
+                    else db.members().insert(FamilyMember(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second))
                     onSaved?.invoke()
                 }
             }.setNegativeButton("Отмена", null).show()
