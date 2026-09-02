@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -287,10 +288,7 @@ class FamilyFragment : Fragment() {
                 android.app.AlertDialog.Builder(ctx).setView(et).setPositiveButton("Создать") { _, _ ->
                     val t = et.text.toString().trim(); if (t.isEmpty()) return@setPositiveButton
                     viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
-                }.setNeutralButton("Удалить") { _, _ ->
-                if (existing != null) android.app.AlertDialog.Builder(ctx).setMessage("Удалить " + existing.name + "? Это не удалит его события.")
-                    .setPositiveButton("Удалить") { _, _ -> scope.launch { db.members().delete(existing.id); onSaved?.invoke() } }
-                    .setNegativeButton("Отмена", null).show()
+                }
             }.setNegativeButton("Отмена", null).show()
             }
         })
@@ -333,6 +331,8 @@ class MemberDialog(private val ctx: android.content.Context, private val existin
                     else db.members().insert(FamilyMember(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second, photo = photoPath))
                     onSaved?.invoke()
                 }
+            }.setNeutralButton("Удалить") { _, _ ->
+                if (existing != null) android.app.AlertDialog.Builder(ctx).setMessage("Удалить " + existing.name + "? Это не удалит его события.")
+                    .setPositiveButton("Удалить") { _, _ -> scope.launch { db.members().delete(existing.id); onSaved?.invoke() } }
+                    .setNegativeButton("Отмена", null).show()
             }.setNegativeButton("Отмена", null).show()
-    }
-}

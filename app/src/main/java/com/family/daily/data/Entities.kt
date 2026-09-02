@@ -11,7 +11,7 @@ data class Category(
 @Entity(tableName = "family_members")
 data class FamilyMember(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val name: String, val role: String, val phone: String = "", val birthYear: Int? = null, val color: String = ""
+    val name: String, val role: String, val phone: String = "", val birthYear: Int? = null, val color: String = "", val photo: String = ""
 )
 
 @Entity(tableName = "clients")
