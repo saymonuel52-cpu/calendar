@@ -285,11 +285,13 @@ class FamilyFragment : Fragment() {
             text = "+ Чек-лист"
             setOnClickListener {
                 val et = android.widget.EditText(ctx).apply { hint = "Название" }
-                android.app.AlertDialog.Builder(ctx).setView(et).setPositiveButton("Создать") { _, _ ->
-                    val t = et.text.toString().trim(); if (t.isEmpty()) return@setPositiveButton
-                    viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
-                }
-            }.setNegativeButton("Отмена", null).show()
+                android.app.AlertDialog.Builder(ctx).setView(et)
+                    .setPositiveButton("Создать") { _, _ ->
+                        val t = et.text.toString().trim(); if (t.isEmpty()) return@setPositiveButton
+                        viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
+                    }
+                    .setNegativeButton("Отмена", null).show()
+            }
         })
     }
 }
