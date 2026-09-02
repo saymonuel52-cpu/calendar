@@ -154,6 +154,13 @@ class FamilyFragment : Fragment() {
             t.addView(ctx.tv(m.name, 15f, true))
             t.addView(ctx.tv(roleName(m.role) + (if (m.birthYear != null) " · " + m.birthYear else "") + (if (m.phone.isNotBlank()) " · " + m.phone else ""), 13f))
             t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            val av: View = if (m.photo.isNotBlank() && java.io.File(m.photo).exists()) {
+                android.widget.ImageView(ctx).apply { setImageBitmap(android.graphics.BitmapFactory.decodeFile(m.photo)); scaleType = android.widget.ImageView.ScaleType.CENTER_CROP }
+            } else {
+                ctx.tv(m.name.take(1), 16f, true).apply { gravity = Gravity.CENTER; setBackgroundColor(if (m.color.isNotBlank()) Color.parseColor(m.color) else 0xFFCCCCCC.toInt()) }
+            }
+            av.layoutParams = LinearLayout.LayoutParams(ctx.dp(44), ctx.dp(44)).apply { marginEnd = ctx.dp(8) }
+            row.addView(av)
             row.addView(t)
             row.addView(Button(ctx).apply { text = "✏️"; minWidth = 0; minimumWidth = 0; setOnClickListener { MemberDialog(ctx, m) { render() }.show() } })
             card.addView(row); contentBox.addView(card)
@@ -280,7 +287,11 @@ class FamilyFragment : Fragment() {
                 android.app.AlertDialog.Builder(ctx).setView(et).setPositiveButton("Создать") { _, _ ->
                     val t = et.text.toString().trim(); if (t.isEmpty()) return@setPositiveButton
                     viewLifecycleOwner.lifecycleScope.launch { db.checklists().insert(com.family.daily.data.Checklist(title = t)); showPanel() }
-                }.setNegativeButton("Отмена", null).show()
+                }.setNeutralButton("Удалить") { _, _ ->
+                if (existing != null) android.app.AlertDialog.Builder(ctx).setMessage("Удалить " + existing.name + "? Это не удалит его события.")
+                    .setPositiveButton("Удалить") { _, _ -> scope.launch { db.members().delete(existing.id); onSaved?.invoke() } }
+                    .setNegativeButton("Отмена", null).show()
+            }.setNegativeButton("Отмена", null).show()
             }
         })
     }
@@ -295,14 +306,31 @@ class MemberDialog(private val ctx: android.content.Context, private val existin
         val colSpin = f.spin(MEMBER_COLORS.map { it.first }); existing?.color?.takeIf { it.isNotBlank() }?.let { hex -> MEMBER_COLORS.indexOfFirst { it.second == hex }.takeIf { i -> i >= 0 }?.let { colSpin.setSelection(it) } }
         val phone = f.edit("Телефон", existing?.phone ?: "")
         val year = f.edit("Год рождения", existing?.birthYear?.toString() ?: "")
+        var photoPath = existing?.photo ?: ""
+        val photoRow = ctx.rowH()
+        val preview = android.widget.ImageView(ctx).apply {
+            layoutParams = LinearLayout.LayoutParams(ctx.dp(48), ctx.dp(48)).apply { marginEnd = ctx.dp(8) }
+            if (photoPath.isNotBlank() && java.io.File(photoPath).exists()) setImageBitmap(android.graphics.BitmapFactory.decodeFile(photoPath))
+            setBackgroundColor(0xFFDDDDDD.toInt())
+            scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+        }
+        photoRow.addView(preview)
+        photoRow.addView(Button(ctx).apply {
+            text = "📷 Фото"; minWidth = 0; minimumWidth = 0
+            setOnClickListener {
+                PhotoPicker.callback = { path -> photoPath = path; preview.setImageBitmap(android.graphics.BitmapFactory.decodeFile(path)) }
+                PhotoPicker.launcher?.invoke()
+            }
+        })
+        f.add(photoRow)
         android.app.AlertDialog.Builder(ctx).setTitle(if (existing == null) "Новый член семьи" else "Член семьи").setView(f.root)
             .setPositiveButton("Сохранить") { _, _ ->
                 val n = name.text.toString().trim()
                 if (n.isEmpty()) { android.widget.Toast.makeText(ctx, "Введите имя", android.widget.Toast.LENGTH_SHORT).show(); return@setPositiveButton }
                 scope.launch {
                     val y = year.text.toString().toIntOrNull()
-                    if (existing != null) db.members().update(existing.copy(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second))
-                    else db.members().insert(FamilyMember(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second))
+                    if (existing != null) db.members().update(existing.copy(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second, photo = photoPath))
+                    else db.members().insert(FamilyMember(name = n, role = ROLES[role.selectedItemPosition], phone = phone.text.toString(), birthYear = y, color = MEMBER_COLORS[colSpin.selectedItemPosition].second, photo = photoPath))
                     onSaved?.invoke()
                 }
             }.setNegativeButton("Отмена", null).show()

@@ -12,6 +12,11 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.adapter.FragmentStateAdapter
@@ -32,6 +37,26 @@ class MainActivity : AppCompatActivity() {
     private val ids = listOf(R.id.tab_calendar, R.id.tab_work, R.id.tab_family, R.id.tab_school, R.id.tab_notes)
     private lateinit var visible: List<Int>
     private var lastUi = -1
+
+    private val rcPhoto = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) {
+            val ctx = this
+            lifecycleScope.launch(Dispatchers.IO) {
+                try {
+                    val bmp = android.graphics.BitmapFactory.decodeStream(ctx.contentResolver.openInputStream(uri))
+                    if (bmp != null) {
+                        val max = 160
+                        val k = Math.min(1f, max.toFloat() / Math.max(bmp.width, bmp.height))
+                        val small = android.graphics.Bitmap.createScaledBitmap(bmp, (bmp.width * k).toInt().coerceAtLeast(1), (bmp.height * k).toInt().coerceAtLeast(1), true)
+                        val f = java.io.File(ctx.filesDir, "photo_" + System.currentTimeMillis() + ".png")
+                        java.io.FileOutputStream(f).use { small.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                        val path = f.absolutePath
+                        withContext(Dispatchers.Main) { com.family.daily.ui.PhotoPicker.callback?.invoke(path) }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btn_settings).setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         findViewById<View>(R.id.btn_search).setOnClickListener { startActivity(Intent(this, SearchActivity::class.java)) }
         Onboarding.showIfNeeded(this)
+        com.family.daily.ui.PhotoPicker.launcher = { rcPhoto.launch("image/*") }
     }
 
     override fun onResume() {

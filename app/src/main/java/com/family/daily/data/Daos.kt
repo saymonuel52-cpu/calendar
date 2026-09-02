@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM family_members WHERE id = :id") suspend fun byId(id: Long): FamilyMember?
     @Insert suspend fun insert(m: FamilyMember): Long
     @Update suspend fun update(m: FamilyMember)
+    @Query("DELETE FROM family_members WHERE id = :id") suspend fun delete(id: Long)
     @Query("DELETE FROM family_members") suspend fun clear()
 }
 @Dao interface ClientDao {
