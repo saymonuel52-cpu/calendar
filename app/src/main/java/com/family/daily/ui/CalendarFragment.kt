@@ -169,7 +169,7 @@ class CalendarFragment : Fragment() {
                             db().events().onDay(selectedDay).first().forEach { e -> db().events().update(e.copy(status = "Отменён")) }
                             db().events().repeatingList().filter { r -> occursOn(r, selectedDay) }.forEach { r -> db().repeatExceptions().insert(RepeatException(eventId = r.id, date = selectedDay)) }
                             val p = pref()
-                            val set = p.getString("cancelledDays", "").split(",").filter { it.isNotBlank() }.toMutableSet()
+                            val set = (p.getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toMutableSet()
                             set.add(selectedDay)
                             p.edit().putString("cancelledDays", set.joinToString(",")).apply()
                             toast("День отменён")
@@ -185,7 +185,7 @@ class CalendarFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             db().repeatExceptions().deleteDate(selectedDay)
             val p = pref()
-            val set = p.getString("cancelledDays", "").split(",").filter { it.isNotBlank() && it != selectedDay }
+            val set = (p.getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() && it != selectedDay }
             p.edit().putString("cancelledDays", set.joinToString(",")).apply()
             toast("День возвращён")
             collectDay(); collectMonth()
