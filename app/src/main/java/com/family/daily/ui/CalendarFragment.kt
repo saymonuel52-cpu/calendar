@@ -145,7 +145,7 @@ class CalendarFragment : Fragment() {
         val ctx = requireContext()
         dayTitle.text = if (selectedDay == todayStr()) "Сегодня" else selectedDay
         dayBox.removeAllViews()
-        if (((pref().getString("cancelledDays", "") ?: "") /* dup */, "") ?: "").split(",").contains(selectedDay)) {
+        if ((pref().getString("cancelledDays", "") ?: "").split(",").contains(selectedDay)) {
             dayBox.addView(ctx.tv("✖ День отменён (болезнь/ЧП)", 14f, true, color = Color.parseColor("#E53935")))
             dayBox.addView(Button(ctx).apply { text = "Вернуть день"; minWidth = 0; minimumWidth = 0; setOnClickListener { restoreDay() } })
             return
@@ -203,7 +203,7 @@ class CalendarFragment : Fragment() {
         if ((pref().getString("calMode", "grid") ?: "grid") == "list") { renderList(); return }
         monthJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val cancelled = ((pref().getString("cancelledDays", "") ?: "") /* dup */, "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
+                val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
                 combine(db().events().between(from, to), db().school().all(), db().templates().all(), db().events().repeating(), db().notes().all()) { evs, sch, tpl, reps, notes ->
                     val map = HashMap<String, MutableList<Long>>(); val allday = HashSet<String>()
                     evs.filter { e -> e.status != "Отменён" }.forEach { e -> map.getOrPut(e.date) { mutableListOf() }.add(e.categoryId); if (e.allDay) allday.add(e.date) }
@@ -232,7 +232,7 @@ class CalendarFragment : Fragment() {
             try {
                 val db = db()
                 val from = todayStr(); val to = addDaysStr(days)
-                val cancelled = ((pref().getString("cancelledDays", "") ?: "") /* dup */, "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
+                val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
                 val evs = db.events().between(from, to).first()
                 val reps = db.events().repeating().first()
                 val sch = db.school().all().first()

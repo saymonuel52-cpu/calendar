@@ -55,8 +55,6 @@ data class SchoolSchedule(
     val days: String = "2,3,4,5,6",
     val title: String = "Школа",
     val categoryId: Long = 3
-) val id: Long = 0,
-    val childId: Long, val days: String = "2,3,4,5,6", val start: String = "08:00", val end: String = "13:00", val enabled: Boolean = true
 )
 
 @Entity(tableName = "work_schedule")
