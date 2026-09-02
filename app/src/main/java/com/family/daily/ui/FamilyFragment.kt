@@ -335,3 +335,4 @@ class MemberDialog(private val ctx: android.content.Context, private val existin
                     .setPositiveButton("Удалить") { _, _ -> scope.launch { db.members().delete(existing.id); onSaved?.invoke() } }
                     .setNegativeButton("Отмена", null).show()
             }.setNegativeButton("Отмена", null).show()}
+}
