@@ -311,7 +311,7 @@ class CalendarFragment : Fragment() {
             cell.isClickable = true
             cell.isFocusable = true
             cell.layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f)
-            cell.addView(ctx.tv(d.toString(), 13f, ds == todayStr()))
+            cell.addView(ctx.tv(d.toString(), 13f, ds == todayStr()).apply { if (cancelled.contains(ds)) setTextColor(Color.parseColor("#616161")) })
             val dots = ctx.rowH()
             (map[ds] ?: emptyList()).distinct().take(3).forEach { cat ->
                 val v = View(ctx); v.layoutParams = LinearLayout.LayoutParams(ctx.dp(6), ctx.dp(6)).apply { marginEnd = ctx.dp(2) }
