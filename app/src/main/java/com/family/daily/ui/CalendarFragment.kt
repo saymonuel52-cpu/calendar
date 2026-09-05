@@ -144,9 +144,10 @@ class CalendarFragment : Fragment() {
 
     private fun renderDayCard(items: List<DayItem>) {
         val ctx = requireContext()
-        dayTitle.text = if (selectedDay == todayStr()) "Сегодня" else selectedDay
+        dayTitle.text = if (selectedDay == todayStr()) "Сегодня · " + dayOfWeekName(selectedDay) else selectedDay + " · " + dayOfWeekName(selectedDay)
         dayBox.removeAllViews()
-        if ((pref().getString("cancelledDays", "") ?: "").split(",").contains(selectedDay)) {
+        val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
+        if (cancelled.contains(selectedDay)) {
             dayBox.addView(ctx.tv("✖ День отменён (болезнь/ЧП)", 14f, true, color = Color.parseColor("#E53935")))
             dayBox.addView(Button(ctx).apply { text = "Вернуть день"; minWidth = 0; minimumWidth = 0; setOnClickListener { restoreDay() } })
             return
@@ -179,7 +180,7 @@ class CalendarFragment : Fragment() {
                     }.setNegativeButton("Нет", null).show()
             }
         }
-        dayBox.addView(cancel)
+        if (!cancelled.contains(selectedDay)) dayBox.addView(cancel)
     }
 
     private fun copyEventDialog(ctx: android.content.Context, eventId: Long) {
@@ -188,7 +189,11 @@ class CalendarFragment : Fragment() {
             val cal = Calendar.getInstance()
             android.app.DatePickerDialog(ctx, { _, y, mo, d ->
                 val nd = String.format("%04d-%02d-%02d", y, mo + 1, d)
-                viewLifecycleOwner.lifecycleScope.launch { db().events().insert(e.copy(id = 0, date = nd)); toast("Скопировано на " + nd) }
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val newId = db().events().insert(e.copy(id = 0, date = nd))
+                    db().participants().membersOf(eventId).forEach { mid -> db().participants().insert(com.family.daily.data.EventParticipant(newId, mid)) }
+                    toast("Скопировано на " + nd)
+                }
             }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
         }
     }
@@ -300,7 +305,10 @@ class CalendarFragment : Fragment() {
             val cell = ctx.colV(); cell.gravity = Gravity.CENTER_HORIZONTAL
             val bg = GradientDrawable(); bg.cornerRadius = ctx.dp(8).toFloat()
             if (ds == selectedDay) bg.setStroke(ctx.dp(2), Color.parseColor("#1E88E5"))
+            if (cancelled.contains(ds)) bg.setColor(Color.parseColor("#DDDDDD"))
             cell.background = bg
+            cell.isClickable = true
+            cell.isFocusable = true
             cell.layoutParams = LinearLayout.LayoutParams(0, ctx.dp(44), 1f)
             cell.addView(ctx.tv(d.toString(), 13f, ds == todayStr()))
             val dots = ctx.rowH()
@@ -311,7 +319,7 @@ class CalendarFragment : Fragment() {
             cell.addView(dots)
             if (allday.contains(ds)) { val b = View(ctx); b.layoutParams = LinearLayout.LayoutParams(ctx.dp(24), ctx.dp(4)); b.setBackgroundColor(colorOf(map[ds]?.first() ?: 1L)); cell.addView(b) }
             cell.setOnClickListener { selectedDay = ds; collectDay(); collectMonth() }
-            cell.setOnLongClickListener { EventFormDialog(ctx, presetDate = ds).show(); true }
+            cell.setOnLongClickListener { toast("Создать событие на " + ds); EventFormDialog(ctx, presetDate = ds).show(); true }
             row.addView(cell)
             if ((off + d) % 7 == 0) { grid.addView(row); row = newRow(ctx) }
         }
