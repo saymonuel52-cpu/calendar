@@ -118,6 +118,11 @@ class SettingsActivity : AppCompatActivity() {
         mc.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("modContacts", c).apply(); bump() }
         root.addView(mc)
 
+        root.addView(tv("Резервные копии"))
+        val autoBk = SwitchCompat(this).apply { text = "Автобэкап по воскресеньям"; isChecked = pref.getBoolean("autoBackupOn", true) }
+        autoBk.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("autoBackupOn", c).apply() }
+        root.addView(autoBk)
+
         root.addView(tv("Утро"))
         val digestOn = SwitchCompat(this).apply { text = "Утренний дайджест (план дня пушем)"; isChecked = pref.getBoolean("digestOn", true) }
         digestOn.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("digestOn", c).apply() }

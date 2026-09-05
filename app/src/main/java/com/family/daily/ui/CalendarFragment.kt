@@ -158,7 +158,7 @@ class CalendarFragment : Fragment() {
             r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
             val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
             r.addView(t)
-            if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
+            if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) }; r.setOnLongClickListener { copyEventDialog(ctx, eid); true } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
             dayBox.addView(r)
         }
         val cancel = Button(ctx).apply {
@@ -180,6 +180,17 @@ class CalendarFragment : Fragment() {
             }
         }
         dayBox.addView(cancel)
+    }
+
+    private fun copyEventDialog(ctx: android.content.Context, eventId: Long) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val e = db().events().byId(eventId) ?: return@launch
+            val cal = Calendar.getInstance()
+            android.app.DatePickerDialog(ctx, { _, y, mo, d ->
+                val nd = String.format("%04d-%02d-%02d", y, mo + 1, d)
+                viewLifecycleOwner.lifecycleScope.launch { db().events().insert(e.copy(id = 0, date = nd)); toast("Скопировано на " + nd) }
+            }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+        }
     }
 
     private fun restoreDay() {
@@ -260,7 +271,7 @@ class CalendarFragment : Fragment() {
                         r.addView(ctx.tv(if (item.allDay) "весь день" else item.start, 12f).apply { layoutParams = LinearLayout.LayoutParams(ctx.dp(70), ViewGroup.LayoutParams.WRAP_CONTENT) })
                         val t = ctx.tv(item.title, 14f); t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
                         r.addView(t)
-                        if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
+                        if (item.kind == "ev" || item.kind == "rep") { val eid = item.id; r.setOnClickListener { showEventView(ctx, eid) }; r.setOnLongClickListener { copyEventDialog(ctx, eid); true } } else if (item.kind == "note") { val nid = item.id; r.setOnClickListener { showNoteView(ctx, nid) } }
                         col.addView(r)
                     }
                     card.addView(col); grid.addView(card)

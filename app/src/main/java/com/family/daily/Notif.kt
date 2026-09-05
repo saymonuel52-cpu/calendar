@@ -67,6 +67,13 @@ class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p
                     }
                 }
             }
+            if (pref.getBoolean("autoBackupOn", true) && c.get(Calendar.DAY_OF_WEEK) == 1 && now in 1200 until 1215 && !pref.getBoolean("autoBk_" + today, false)) {
+                pref.edit().putBoolean("autoBk_" + today, true).apply()
+                try {
+                    Backup.export(applicationContext)
+                    NotificationHelper.post(applicationContext, 999, "Резервная копия", "Автоматическая копия сохранена в Загрузки")
+                } catch (_: Exception) {}
+            }
             if (pref.getBoolean("digestOn", true)) {
                 val digestTime = pref.getString("digestTime", "07:30") ?: "07:30"
                 val dm = minutesOf(digestTime)

@@ -235,6 +235,16 @@ fun showEventView(ctx: Context, id: Long) {
                 }
             })
         }
+        box.addView(Button(ctx).apply {
+            text = "📋 Копировать на другой день"; minWidth = 0; minimumWidth = 0
+            setOnClickListener {
+                val cal = Calendar.getInstance()
+                android.app.DatePickerDialog(ctx, { _, y, mo, d ->
+                    val nd = String.format("%04d-%02d-%02d", y, mo + 1, d)
+                    scope.launch { db.events().insert(e.copy(id = 0, date = nd)); android.widget.Toast.makeText(ctx, "Скопировано на " + nd, android.widget.Toast.LENGTH_SHORT).show() }
+                }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
+            }
+        })
         AlertDialog.Builder(ctx).setView(box)
             .setPositiveButton("Изменить") { _, _ -> EventFormDialog(ctx, e).show() }
             .setNeutralButton("Удалить") { _, _ -> scope.launch { db.events().delete(id); ctx.refreshWidget() } }
