@@ -144,9 +144,9 @@ class CalendarFragment : Fragment() {
 
     private fun renderDayCard(items: List<DayItem>) {
         val ctx = requireContext()
+        val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
         dayTitle.text = if (selectedDay == todayStr()) "Сегодня · " + dayOfWeekName(selectedDay) else selectedDay + " · " + dayOfWeekName(selectedDay)
         dayBox.removeAllViews()
-        val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
         if (cancelled.contains(selectedDay)) {
             dayBox.addView(ctx.tv("✖ День отменён (болезнь/ЧП)", 14f, true, color = Color.parseColor("#E53935")))
             dayBox.addView(Button(ctx).apply { text = "Вернуть день"; minWidth = 0; minimumWidth = 0; setOnClickListener { restoreDay() } })
