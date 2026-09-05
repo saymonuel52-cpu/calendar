@@ -288,6 +288,7 @@ class CalendarFragment : Fragment() {
 
     private fun renderGrid(y: Int, m: Int, last: Int, map: Map<String, MutableList<Long>>, allday: Set<String>) {
         val ctx = requireContext()
+        val cancelled = (pref().getString("cancelledDays", "") ?: "").split(",").filter { it.isNotBlank() }.toSet()
         grid.removeAllViews()
         val fd = firstDayDow()
         val names = if (fd == 2) listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс") else listOf("Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб")
