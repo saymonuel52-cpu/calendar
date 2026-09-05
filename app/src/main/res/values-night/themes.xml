@@ -1,11 +1,11 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.FamilyDaily" parent="Theme.Material3.DayNight">
-        <item name="colorPrimary">#00796B</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
-        <item name="colorSecondary">#FF7043</item>
-        <item name="colorOnSecondary">#FFFFFF</item>
-        <item name="colorSurface">#FFFFFF</item>
-        <item name="android:windowBackground">#FAF7F2</item>
+        <item name="colorPrimary">#4DB6AC</item>
+        <item name="colorOnPrimary">#00332E</item>
+        <item name="colorSecondary">#FF8A65</item>
+        <item name="colorOnSecondary">#3E2723</item>
+        <item name="colorSurface">#1E1E1E</item>
+        <item name="android:windowBackground">#121212</item>
         <item name="android:buttonStyle">@style/Widget.App.Button</item>
         <item name="android:editTextStyle">@style/Widget.App.Edit</item>
     </style>

@@ -81,3 +81,10 @@ object PhotoPicker {
     var launcher: (() -> Unit)? = null
     var callback: ((String) -> Unit)? = null
 }
+fun Context.withFontScale(): Context {
+    val scale = getSharedPreferences("app", 0).getFloat("fontScale", 1f)
+    if (scale == 1f) return this
+    val conf = resources.configuration
+    conf.fontScale = scale
+    return createConfigurationContext(conf)
+}

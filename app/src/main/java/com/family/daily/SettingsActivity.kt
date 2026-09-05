@@ -12,6 +12,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import com.family.daily.ui.withFontScale
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class SettingsActivity : AppCompatActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) { super.attachBaseContext(newBase.withFontScale()) }
     private lateinit var pref: android.content.SharedPreferences
     private val db by lazy { AppDb.get(this) }
 
@@ -144,6 +146,38 @@ class SettingsActivity : AppCompatActivity() {
         val colorPerson = SwitchCompat(this).apply { text = "Цвета по детям (а не по категориям)"; isChecked = pref.getBoolean("colorByPerson", false) }
         colorPerson.setOnCheckedChangeListener { _, c -> pref.edit().putBoolean("colorByPerson", c).apply() }
         root.addView(colorPerson)
+        root.addView(tv("Шрифт и тема"))
+        val fsOpts = listOf("0.85", "1.0", "1.15", "1.3"); val fsNames = listOf("Мелкий", "Обычный", "Крупный", "Очень крупный")
+        val fsSpin = Spinner(this).apply { adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, fsNames); setSelection(fsOpts.indexOf(pref.getFloat("fontScale", 1f).toString()).coerceAtLeast(1)) }
+        fsSpin.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                if (pref.getFloat("fontScale", 1f) != fsOpts[pos].toFloat()) { pref.edit().putFloat("fontScale", fsOpts[pos].toFloat()).apply(); recreate() }
+            }
+            override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
+        }
+        root.addView(fsSpin)
+        val ffOpts = listOf("default", "light", "serif"); val ffNames = listOf("Обычный", "Лёгкий", "Книжный")
+        val ffSpin = Spinner(this).apply { adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, ffNames); setSelection(ffOpts.indexOf(pref.getString("fontFamily", "default")).coerceAtLeast(0)) }
+        ffSpin.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                if (pref.getString("fontFamily", "default") != ffOpts[pos]) { pref.edit().putString("fontFamily", ffOpts[pos]).apply(); recreate() }
+            }
+            override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
+        }
+        root.addView(ffSpin)
+        val thOpts = listOf("system", "light", "dark"); val thNames = listOf("Как в системе", "Светлая", "Тёмная")
+        val thSpin = Spinner(this).apply { adapter = ArrayAdapter(this@SettingsActivity, android.R.layout.simple_spinner_item, thNames); setSelection(thOpts.indexOf(pref.getString("themeMode", "system")).coerceAtLeast(0)) }
+        thSpin.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p2: android.widget.AdapterView<*>?, v: android.view.View?, pos: Int, id: Long) {
+                if (pref.getString("themeMode", "system") != thOpts[pos]) {
+                    pref.edit().putString("themeMode", thOpts[pos]).apply()
+                    androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(when (thOpts[pos]) { "light" -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO; "dark" -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES; else -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM })
+                    recreate()
+                }
+            }
+            override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
+        }
+        root.addView(thSpin)
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
         dark.setOnCheckedChangeListener { _, c ->
             pref.edit().putBoolean("dark", c).apply()

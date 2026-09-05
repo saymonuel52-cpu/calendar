@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.family.daily.ui.withFontScale
 import androidx.lifecycle.lifecycleScope
 import com.family.daily.data.AppDb
 import com.family.daily.ui.EventFormDialog
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
 
 class SearchActivity : AppCompatActivity() {
+    override fun attachBaseContext(newBase: android.content.Context) { super.attachBaseContext(newBase.withFontScale()) }
     private lateinit var input: EditText
     private lateinit var results: LinearLayout
     private var job: Job? = null
