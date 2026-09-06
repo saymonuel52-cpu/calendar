@@ -44,6 +44,7 @@ import kotlinx.coroutines.flow.Flow
     @Query("SELECT * FROM services WHERE id = :id") suspend fun byId(id: Long): Service?
     @Insert suspend fun insert(s: Service): Long
     @Update suspend fun update(s: Service)
+    @Query("DELETE FROM services WHERE id = :id") suspend fun delete(id: Long)
     @Query("DELETE FROM services") suspend fun clear()
 }
 @Dao interface ParticipantDao {

@@ -107,6 +107,10 @@ class ClientDialog(private val ctx: Context, private val existing: Client? = nul
                     else db.clients().insert(Client(name = n, phone = phone.text.toString(), source = src.selectedItem.toString(), note = note.text.toString()))
                     onSaved?.invoke(); ctx.refreshWidget()
                 }
+            }.setNeutralButton(if (existing != null) "Удалить" else null) { _, _ ->
+                if (existing != null) AlertDialog.Builder(ctx).setMessage("Удалить клиента " + existing.name + "? История визитов останется.")
+                    .setPositiveButton("Удалить") { _, _ -> scope.launch { db.clients().delete(existing.id); onSaved?.invoke() } }
+                    .setNegativeButton("Отмена", null).show()
             }.setNegativeButton("Отмена", null).show()
     }
 }
