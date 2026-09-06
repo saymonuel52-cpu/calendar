@@ -67,6 +67,7 @@ class ReminderWorker(ctx: Context, p: WorkerParameters) : CoroutineWorker(ctx, p
                     }
                 }
             }
+            pref.edit().putLong("lastWorker", System.currentTimeMillis()).apply()
             if (pref.getBoolean("autoBackupOn", true) && c.get(Calendar.DAY_OF_WEEK) == 1 && now in 1200 until 1215 && !pref.getBoolean("autoBk_" + today, false)) {
                 pref.edit().putBoolean("autoBk_" + today, true).apply()
                 try {

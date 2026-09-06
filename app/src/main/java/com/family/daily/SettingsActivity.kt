@@ -178,6 +178,22 @@ class SettingsActivity : AppCompatActivity() {
             override fun onNothingSelected(p2: android.widget.AdapterView<*>?) {}
         }
         root.addView(thSpin)
+        root.addView(android.widget.Button(this).apply {
+            text = "🩺 Самопроверка"
+            setOnClickListener {
+                lifecycleScope.launch {
+                    val results = SelfCheck.run(this@SettingsActivity)
+                    val text = results.joinToString("\n") { (if (it.ok) "✅ " else "❌ ") + it.name + (if (it.detail.isNotBlank()) ": " + it.detail else "") }
+                    android.app.AlertDialog.Builder(this@SettingsActivity).setTitle("Самопроверка").setMessage(text)
+                        .setPositiveButton("Скопировать отчёт") { _, _ ->
+                            val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            cm.setPrimaryClip(android.content.ClipData.newPlainText("selfcheck", text))
+                            android.widget.Toast.makeText(this@SettingsActivity, "Отчёт скопирован — вставь в чат", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                        .setNegativeButton("Закрыть", null).show()
+                }
+            }
+        })
         val dark = SwitchCompat(this).apply { text = "Тёмная тема"; isChecked = pref.getBoolean("dark", false) }
         dark.setOnCheckedChangeListener { _, c ->
             pref.edit().putBoolean("dark", c).apply()
