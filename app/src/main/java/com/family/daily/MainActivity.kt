@@ -98,6 +98,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<View>(R.id.btn_search).setOnClickListener { startActivity(Intent(this, SearchActivity::class.java)) }
         Onboarding.showIfNeeded(this)
         com.family.daily.ui.PhotoPicker.launcher = { rcPhoto.launch("image/*") }
+        if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 101)
+        }
+        val wreq = androidx.work.PeriodicWorkRequestBuilder<ReminderWorker>(15, java.util.concurrent.TimeUnit.MINUTES).build()
+        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork("reminder", androidx.work.ExistingPeriodicWorkPolicy.KEEP, wreq)
     }
 
     override fun onResume() {

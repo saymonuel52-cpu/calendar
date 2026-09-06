@@ -179,6 +179,14 @@ class SettingsActivity : AppCompatActivity() {
         }
         root.addView(thSpin)
         root.addView(android.widget.Button(this).apply {
+            text = "🔔 Включить уведомления"
+            setOnClickListener {
+                try {
+                    startActivity(android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName))
+                } catch (_: Exception) {}
+            }
+        })
+        root.addView(android.widget.Button(this).apply {
             text = "🩺 Самопроверка"
             setOnClickListener {
                 lifecycleScope.launch {
